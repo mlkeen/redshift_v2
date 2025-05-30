@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ panel.label }} — Spatial Overlay</h2>
+<div id="overlay-plot" style="width: 800px; height: 600px;"></div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+  const spaceObjects = {{ objects|tojson }};
+  
+  const typeStyles = {
+    "ship": { color: "blue", size: 15, symbol: "circle" },
+    "asteroid": { color: "brown", size: 10, symbol: "square" },
+    "unknown": { color: "gray", size: 12, symbol: "x" },
+    "station": { color: "orange", size: 12, symbol: "triangle-down" },
+    "probe": { color: "green", size: 8, symbol: "triangle-up" }
+  };
+
+  const data = [];
+
+  for (const obj of spaceObjects) {
+    const style = typeStyles[obj.type] || typeStyles["unknown"];
+    data.push({
+      x: [obj.x],
+      y: [obj.y],
+      mode: "markers+text",
+      type: "scatter",
+      marker: {
+        size: style.size,
+        color: style.color,
+        symbol: style.symbol
+      },
+      text: [obj.transponder_signal || obj.name],
+      textposition: "top center",
+      name: obj.name
+    });
+  }
+
+  const layout = {
+    xaxis: { title: "(km)", zeroline: false },
+    yaxis: { title: "(km)", zeroline: false },
+    showlegend: false,
+    plot_bgcolor: "#000",
+    paper_bgcolor: "#000",
+    font: { color: "#fff" }
+  };
+
+  Plotly.newPlot('overlay-plot', data, layout);
+</script>
+{% endblock %}

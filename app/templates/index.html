@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Welcome to REDSHIFT v2</h1>
+  {% if current_user.is_authenticated %}
+    <p>You are logged in as <strong>{{ current_user.username }}</strong>.</p>
+    <p>From here, you’ll be able to manage panels, players, and QR-linked systems.</p>
+  {% else %}
+    <p>This is a control system for the REDSHIFT megagame. You must <a href="{{ url_for('auth.login') }}">log in</a> to continue.</p>
+  {% endif %}
+{% endblock %}

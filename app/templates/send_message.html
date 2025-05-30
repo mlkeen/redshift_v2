@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<body>
+  <h2>Send Tightbeam Message</h2>
+  <p>Player Code: {{ player.code }}</p>
+
+  <form id="messageForm" method="POST">
+    <label for="target_id">Target:</label>
+    <select name="target_id" id="target_id" required>
+      {% for target in targets %}
+        <option value="{{ target.id }}">{{ target.name }}</option>
+      {% endfor %}
+    </select>
+
+    <input type="hidden" name="audio_data" id="audio_data">
+    <button type="button" id="recordBtn">🎙 Start Recording</button>
+    <button type="submit" id="submitBtn" disabled>📤 Send</button>
+
+    <br><br>
+    <audio id="preview" controls style="display: none;"></audio>
+  </form>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+const recordBtn = document.getElementById('recordBtn');
+const submitBtn = document.getElementById('submitBtn');
+const audioInput = document.getElementById('audio_data');
+const preview = document.getElementById('preview');
+
+recordBtn.addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    recordBtn.innerText = "🎙 Start Recording";
+    return;
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+  audioChunks = [];
+
+  mediaRecorder.ondataavailable = e => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = async () => {
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    const reader = new FileReader();
+
+    // Setup audio preview
+    const blobUrl = URL.createObjectURL(audioBlob);
+    preview.src = blobUrl;
+    preview.style.display = 'block';
+
+    reader.onloadend = () => {
+      const base64 = reader.result.split(',')[1];
+      audioInput.value = base64;
+      submitBtn.disabled = false;
+    };
+
+    reader.readAsDataURL(audioBlob);
+  };
+
+  mediaRecorder.start();
+  recordBtn.innerText = "⏹ Stop Recording";
+
+  // Safety timeout (30s)
+  setTimeout(() => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      recordBtn.innerText = "🎙 Start Recording";
+    }
+  }, 30000);
+});
+</script>
+
+{% endblock %}

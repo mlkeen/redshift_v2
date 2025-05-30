@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ panel.label }}</h2>
+<p><em>Code: {{ panel.code }}</em></p>
+
+{% if access_name %}
+  <p style="font-weight: bold; color: limegreen;">ACCESS: {{ access_name }}</p>
+{% endif %}
+
+<p><a href="{{ url_for('main.send_message_form', code=panel.code) }}">📡 Send Tightbeam Message</a></p>
+
+
+<hr>
+
+<h3>Scan Player QR Code</h3>
+<div id="qr-reader" style="width: 300px;"></div>
+<p id="scan-msg" style="margin-top: 1rem; font-weight: bold;"></p>
+
+<div id="panel-content" style="margin-top: 2rem;">
+  {{ panel.content | safe }}
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+  const panelCode = "{{ panel.code }}";
+
+  function onScanSuccess(scannedCode) {
+    const code = scannedCode.trim().toUpperCase();
+
+    if (/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)) {
+      // Assume player code
+      document.getElementById("scan-msg").innerText = `Granting access for ${code}...`;
+      fetch(`/access/${code}/${panelCode}`, { method: 'POST' })
+        .then(() => window.location.reload());
+    } else {
+      // Assume Interactable
+      document.getElementById("scan-msg").innerText = `Activating ${code}...`;
+      fetch(`/use/${code}/${panelCode}`, { method: 'POST' })
+        .then(() => window.location.reload());
+    }
+  }
+
+    document.getElementById("scan-msg").innerText = `Granting access for ${formatted}...`;
+    fetch(`/access/${formatted}/${panelCode}`, { method: 'POST' })
+      .then(() => window.location.reload())
+      .catch(err => {
+        console.error(err);
+        document.getElementById("scan-msg").innerText = "Error processing code.";
+      });
+  }
+
+  const qrReader = new Html5Qrcode("qr-reader");
+  qrReader.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+</script>
+{% endblock %}

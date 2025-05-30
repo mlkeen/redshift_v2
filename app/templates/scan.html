@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>QR Code Scanner</h2>
+
+<div id="qr-reader" style="width: 300px;"></div>
+<div id="qr-result" style="margin-top: 1rem; font-weight: bold;"></div>
+
+<hr>
+
+<h3>Manual Code Entry</h3>
+<form id="manual-form">
+  <input id="manual-code" type="text" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{3}" placeholder="ABC-123" required>
+  <button type="submit">Submit Code</button>
+</form>
+<div id="manual-result" style="margin-top: 1rem; font-weight: bold;"></div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+  // QR scan success handler
+  function onScanSuccess(decodedText) {
+    document.getElementById('qr-result').innerText = `Scanned: ${decodedText}`;
+    // Optional: redirect
+    // window.location.href = `/update/${decodedText}`;
+  }
+
+  // Start QR scanner
+  const qrReader = new Html5Qrcode("qr-reader");
+  qrReader.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
+  );
+
+  // Manual form handler
+  document.getElementById('manual-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const code = document.getElementById('manual-code').value.trim().toUpperCase();
+    const isValid = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code);
+
+    if (isValid) {
+      document.getElementById('manual-result').innerText = `Entered: ${code}`;
+      // Optional: redirect
+      // window.location.href = `/update/${code}`;
+    } else {
+      document.getElementById('manual-result').innerText = "Invalid code format. Use ABC-123.";
+    }
+  });
+</script>
+{% endblock %}

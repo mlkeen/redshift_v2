@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Manage {{ object_type|capitalize }}</h2>
+
+<a href="{{ url_for('main.control_add_object', object_type=object_type) }}" class="btn btn-primary mb-3">+ Add New {{ object_type[:-1].capitalize() }}</a>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Code / Name</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.id }}</td>
+      <td>{{ item.code if item.code else item.name }}</td>
+      <td>
+        <a href="{{ url_for('main.control_edit_object', object_type=object_type, object_id=item.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a href="{{ url_for('main.control_dashboard') }}" class="btn btn-light">Back to Dashboard</a>
+{% endblock %}

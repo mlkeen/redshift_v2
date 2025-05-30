@@ -1,0 +1,6 @@
+__pycache__/
+app/__pycache__/
+seed_data.xlsx
+load_from_excel.py
+.env
+resources/
