@@ -1,13 +1,9 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from .extensions import db 
 from flask_login import LoginManager
+from .routes import main 
 
-
-
-db = SQLAlchemy()
 login_manager = LoginManager()
-
-
 
 def create_app():
     app = Flask(__name__)

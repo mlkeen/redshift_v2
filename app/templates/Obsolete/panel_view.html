@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ panel.name }}</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    #main-display {
+      flex: 3;
+      background-color: #111;
+      color: #0f0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #menu {
+      flex: 1;
+      background-color: #222;
+      color: #fff;
+      padding: 20px;
+      border-left: 2px solid #0f0;
+    }
+    .menu-option {
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    .menu-option span.key {
+      font-weight: bold;
+      color: #0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="main-display">
+    <pre id="display-content">{{ panel.display_text }}</pre>
+  </div>
+  <div id="menu">
+    {% for key, option in panel.menu_options.items() %}
+      <div class="menu-option"><span class="key">[{{ key.upper() }}]</span> {{ option }}</div>
+    {% endfor %}
+  </div>
+
+  <script>
+    document.addEventListener('keydown', function(event) {
+      const key = event.key.toUpperCase();
+      fetch(`/panel_action/{{ panel.code }}/${key}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.new_content) {
+            document.getElementById('display-content').textContent = data.new_content;
+          }
+        });
+    });
+  </script>
+</body>
+</html>

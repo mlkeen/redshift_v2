@@ -8,12 +8,7 @@ import base64
 import uuid
 from werkzeug.utils import secure_filename
 import os
-
-
-# app/routes.py
-
-
-
+from app.extensions import db
 
 
 main = Blueprint('main', __name__)
@@ -150,29 +145,39 @@ def control_edit_object(object_type, object_id):
 
 
 ### PANELS
+@main.route('/panel/<string:panel_code>/', defaults={'display': None, 'player': None, 'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/', defaults={'player': None, 'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/<string:player>/', defaults={'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/<string:player>/<string:interactable>/')
+def panel_view(panel_code, display, player, interactable):
+    panel = Panel.query.filter_by(code=panel_code.upper()).first_or_404()
 
-@main.route('/panel/<code>')
-def show_panel(code):
-    panel = Panel.query.filter_by(code=code.upper()).first()
-    if not panel:
-        abort(404)
+    player_obj = None
+    if player:
+        player_obj = Player.query.filter_by(code=player.upper()).first()
 
-    session_key = f"access_{code.upper()}"
-    timestamp_key = f"access_time_{code.upper()}"
-    access_name = session.get(session_key)
-    access_time_str = session.get(timestamp_key)
-
-    if access_name and access_time_str:
-        access_time = datetime.fromisoformat(access_time_str)
-        if datetime.utcnow() - access_time > timedelta(seconds=60):
-            # Expired — clear session
-            session.pop(session_key, None)
-            session.pop(timestamp_key, None)
-            access_name = None
-
-    return render_template('panel.html', panel=panel, access_name=access_name)
+    interactable_obj = None
+    if interactable:
+        interactable_obj = Interactable.query.filter_by(code=interactable.upper()).first()
 
 
+    # Optional: Customize per-player
+    player_options = {
+        'M': 'Comms',
+        'P': 'Polling',
+    } if player_obj else {}
+
+    return render_template('panel_base.html',
+                           panel=panel,
+                           display=display,
+                           player=player_obj,
+                           interactable=interactable_obj,
+                           menu_items=[(item['key'], item['label']) for item in panel.menu_items],
+                           player_options=player_options)
+
+
+
+### Obsolete
 @main.route('/access/<player_code>/<panel_code>', methods=["POST"])
 def grant_access(player_code, panel_code):
     player = Player.query.filter_by(code=player_code.upper()).first()
@@ -187,26 +192,6 @@ def grant_access(player_code, panel_code):
 
 from app.models import Interactable
 
-@main.route('/use/<interact_code>/<panel_code>', methods=["POST"])
-def use_object(interact_code, panel_code):
-    interact = Interactable.query.filter_by(code=interact_code.upper()).first()
-    panel = Panel.query.filter_by(code=panel_code.upper()).first()
-
-    if not interact or not panel:
-        abort(404)
-
-    access_name = session.get(f"access_{panel_code.upper()}") if interact.requires_player else None
-
-    # Sample effect: update panel content
-    effect = f"Used {interact.label}"
-    if access_name:
-        effect += f" (by {access_name})"
-    
-    panel.content = f"<p>{effect}</p>\n" + panel.content
-    panel.last_updated = datetime.utcnow()
-    db.session.commit()
-
-    return ('', 204)
 
 
 @main.route('/overlay/<panel_code>')

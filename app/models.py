@@ -1,7 +1,8 @@
-from . import db
+from app.extensions import db 
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from . import db
 
 class Control(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,14 +15,30 @@ class Control(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-
 class Panel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    code = db.Column(db.String(12), unique=True, nullable=False)  # e.g. P12-HI3
-    label = db.Column(db.String(80), nullable=False)  # Display name
-    content = db.Column(db.Text, default="")  # Raw HTML or structured data
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+    code = db.Column(db.String(20), unique=True, nullable=False)
+    system = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+    primary_display = db.Column(db.String(100), nullable=False)  # e.g., 'panels/example_display.html'
+    menu_items = db.Column(db.JSON, nullable=False, default=[])
 
+    def set_default_menu(self):
+        self.menu_items = [
+            {"key": "1", "label": "Status"},
+            {"key": "2", "label": "Polling"},
+            {"key": "3", "label": "Medical Logs"},
+            {"key": "4", "label": "Med Bay"},
+            {"key": "5", "label": "Engineering"},
+            {"key": "6", "label": "Hydroponics"},
+            {"key": "7", "label": "Biolab"},
+            {"key": "8", "label": "Ghesa Array"},
+            {"key": "9", "label": "Redacted Lab"},
+            {"key": "A", "label": "Laser Comms"},
+            {"key": "B", "label": "Crew Roster"},
+            {"key": "C", "label": "Overlay"}
+
+        ]
 
 class QRObject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -120,3 +137,4 @@ class TightbeamMessage(db.Model):
     # Optional response
     response_path = db.Column(db.String(200), nullable=True)
     response_time = db.Column(db.DateTime, nullable=True)
+

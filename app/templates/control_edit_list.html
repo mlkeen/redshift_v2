@@ -20,10 +20,17 @@
       <td>
         <a href="{{ url_for('main.control_edit_object', object_type=object_type, object_id=item.id) }}" class="btn btn-sm btn-secondary">Edit</a>
       </td>
+      {% if object_type == "panels" %}
+      <td>
+        <a href="{{ url_for('main.panel_view', panel_code=item.code) }}" class="btn btn-sm btn-secondary">Open</a>
+      </td>
+      {% endif %}
     </tr>
     {% endfor %}
   </tbody>
 </table>
+
+<p>object_type: {{ object_type }}</p>
 
 <a href="{{ url_for('main.control_dashboard') }}" class="btn btn-light">Back to Dashboard</a>
 {% endblock %}
