@@ -4,3 +4,4 @@ flask_login
 python-dotenv
 werkzeug
 flask-wtf
+Flask-Mail==0.9.1
