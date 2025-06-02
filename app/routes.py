@@ -1,15 +1,19 @@
 from flask import Blueprint, render_template, abort, session, redirect, url_for, request, flash, current_app
 from flask_login import login_required
-from app.models import Panel, Player, Interactable, SpaceObject, TightbeamMessage, CommTarget
+from app.models import Panel, Player, Interactable, SpaceObject, TightbeamMessage, CommTarget, Control, ControlInvite, GameState
 from datetime import datetime, timedelta
-from .forms import PlayerForm, PanelForm, InteractableForm, SpaceObjectForm
+from .forms import PlayerForm, PanelForm, InteractableForm, SpaceObjectForm, ControlInviteForm, ControlRegistrationForm
+from app.email_utils import send_email
 from . import db
 import base64
 import uuid
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 import os
 from app.extensions import db
-
+from datetime import datetime
+import secrets
+import json
 
 main = Blueprint('main', __name__)
 
@@ -21,16 +25,129 @@ def index():
 def scan():
     return render_template('scan.html')
 
+### CONTROL REGISTRATION
+@main.route('/invite_control', methods=['GET', 'POST'])
+@login_required
+def invite_control():
+    form = ControlInviteForm()
+    if form.validate_on_submit():
+        recipient_email = form.email.data
+        token = secrets.token_urlsafe(16)  # or use a timed serializer for added security
+        invite_link = url_for('main.register_control', token=token, _external=True)
+
+        # Store token and email in DB or temporary store
+        invite = ControlInvite(email=recipient_email, token=token)
+        db.session.add(invite)
+        db.session.commit()
+
+        # Send email
+        subject = "Redshift Control Registration Invitation"
+        body = f"""
+        Hello,
+
+        You've been invited to register as a Control user for the upcoming Redshift megagame scheduled for 8/12/25.
+
+        Click the link below to complete your registration:
+        {invite_link}
+
+        If you weren't expecting this email, you can ignore it.
+
+        Regards,  
+        Redshift Admin Team
+        """
+        send_email(recipient_email, subject, body)
+
+        flash("Invitation email sent.", "success")
+        return redirect(url_for('main.control_dashboard'))  # Or wherever makes sense
+    return render_template('invite_control.html', form=form)
+
+
+@main.route('/register_control/<token>', methods=['GET', 'POST'])
+def register_control(token):
+    invite = ControlInvite.query.filter_by(token=token).first()
+
+    if not invite:
+        flash("Invalid or expired invitation link.", "danger")
+        return redirect(url_for('main.index'))
+
+    form = ControlRegistrationForm()
+
+    if request.method == 'GET':
+        form.email_address.data = invite.email  # Pre-fill from invite
+
+    if form.validate_on_submit():
+        # Ensure unique username
+        if Control.query.filter_by(username=form.username.data).first():
+            flash("Username already taken.", "danger")
+            return render_template('register_control.html', form=form)
+
+        # Create Control user
+        new_control = Control(
+            username=form.username.data,
+            password_hash=generate_password_hash(form.password.data),
+            name=form.name.data,
+            pronouns=form.pronouns.data,
+            email_address=form.email_address.data
+        )
+        db.session.add(new_control)
+        db.session.delete(invite)  # Invalidate the invite
+        db.session.commit()
+
+        # After successful Control registration
+        send_email(
+            recipient=form.email_address.data,
+            subject="Redshift Control Account Confirmed",
+            body=f"""Hello {form.name.data},
+
+        Your Control account for the Redshift megagame (scheduled 8/12/25) has been successfully registered.
+
+        You can now log in and begin preparing for your role.
+
+        Welcome aboard!
+
+        — Redshift Admin Team"""
+        )
+
+        flash("Control account created successfully. A confirmation email has been sent.", "success")
+        return redirect(url_for('auth.login'))
+
+    return render_template('register_control.html', form=form)
+
+
 
 ### CONTROL INTERFACE
-
-@main.route('/control')
+@main.route('/control_dashboard')
 @login_required
 def control_dashboard():
-    from app.models import GameState, TightbeamMessage, CommTarget
-    messages = TightbeamMessage.query.order_by(TightbeamMessage.sent_time.desc()).all()
     game_state = GameState.query.first()
-    return render_template("control_dashboard.html", messages=messages, game_state=game_state)
+    messages = TightbeamMessage.query.order_by(TightbeamMessage.sent_time.desc()).all()
+    time_remaining = game_state.time_remaining() if game_state else None
+    return render_template('control/dashboard.html', messages=messages, game_state=game_state, time_remaining=time_remaining)
+
+
+@main.route('/control/start_phase', methods=['GET', 'POST'])
+def start_phase():
+    if request.method == 'POST':
+        phase_name = request.form.get('phase_name', 'Unnamed Phase')
+        duration = int(request.form.get('duration', 0))
+        in_game_time = request.form.get('in_game_time', '')
+
+        state = GameState.query.first()
+        if not state:
+            state = GameState()
+
+        state.phase_name = phase_name
+        state.phase_duration_minutes = duration
+        state.phase_start_time = datetime.utcnow()
+
+        db.session.add(state)
+        db.session.commit()
+        flash(f"Phase '{phase_name}' started for {duration} minutes.", 'success')
+        return redirect(url_for('main.control_dashboard'))
+
+    return render_template('control/start_phase.html')
+
+
 
 
 @main.route('/control/messages')
@@ -145,35 +262,39 @@ def control_edit_object(object_type, object_id):
 
 
 ### PANELS
-@main.route('/panel/<string:panel_code>/', defaults={'display': None, 'player': None, 'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/', defaults={'player': None, 'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/<string:player>/', defaults={'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/<string:player>/<string:interactable>/')
-def panel_view(panel_code, display, player, interactable):
+@main.route('/panel/<string:panel_code>/', defaults={'display': None, 'player_code': None, 'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/', defaults={'player_code': None, 'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/<string:player_code>/', defaults={'interactable': None})
+@main.route('/panel/<string:panel_code>/<string:display>/<string:player_code>/<string:interactable>/')
+def panel_view(panel_code, display, player_code, interactable):
     panel = Panel.query.filter_by(code=panel_code.upper()).first_or_404()
 
-    player_obj = None
-    if player:
-        player_obj = Player.query.filter_by(code=player.upper()).first()
+    player = None
+    if player_code:
+        player = Player.query.filter_by(code=player_code.upper()).first()
+
+    # Replace display with primary_display if missing
+    if not display:
+        display = panel.primary_display
+
+    print("Loaded player:", player.name if player else "None")
 
     interactable_obj = None
     if interactable:
         interactable_obj = Interactable.query.filter_by(code=interactable.upper()).first()
 
 
-    # Optional: Customize per-player
-    player_options = {
-        'M': 'Comms',
-        'P': 'Polling',
-    } if player_obj else {}
+    menu_data = panel.menu_items or []
+    if player and isinstance(player.player_menu, list):
+        menu_data += player.player_menu
 
     return render_template('panel_base.html',
                            panel=panel,
                            display=display,
-                           player=player_obj,
+                           player=player,#player_obj,
                            interactable=interactable_obj,
-                           menu_items=[(item['key'], item['label']) for item in panel.menu_items],
-                           player_options=player_options)
+                           menu_items = [(item['key'], item['label']) for item in menu_data] )
+            
 
 
 

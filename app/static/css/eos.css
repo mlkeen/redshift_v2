@@ -1,0 +1,642 @@
+/* === Retro-Futurist Sleek Theme === */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Orbitron:wght@500;700&display=swap');
+
+:root {
+    --bg-color: #121212;
+    --accent-color: #00f0ff;
+    --muted-color: #888;
+    --fg-color: #e0f7fa;
+    --warning-color: #d8ea19;
+    --alert-color: #ff4081;
+    --font-main: 'IBM Plex Mono', monospace;
+    --font-heading: 'Orbitron', sans-serif;
+    --font-size-base: 16px;
+}
+
+
+/* === Base === */
+/* Make sure html and body take up exactly the screen size */
+html, body {
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent scrollbars */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: var(--font-main);
+    font-size: var(--font-size-base);
+}
+
+
+
+/* === Title Bar === */
+.title-bar {
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    letter-spacing: 0.7rem;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 0.5rem 1rem 0.25rem;
+    width: 100%;
+}
+
+
+
+/* === Layout === */
+.panel-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--bg-color);
+    font-family: var(--font-main);
+    color: var(--fg-color);
+    overflow: hidden; /* Prevent overflow */
+}
+
+.panel-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.main-display {
+    flex: 3;
+    overflow: hidden;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    overflow: hidden;
+}
+
+.menu {
+    flex: 1;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    overflow: hidden; 
+}
+
+
+
+/* === Menu === */
+.menu h3, .menu h4 {
+    color: var(--accent-color);
+    border-bottom: 1px solid var(--muted-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+
+
+.menu-item {
+    display: flex;
+    align-items: stretch;
+    margin: 1rem 0;
+    border: 1px solid var(--accent-color);
+    width: 100%;
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.menu-key {
+    background-color: var(--alert-color);
+    color: var(--bg-color);
+    font-weight: bold;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    text-align: center;
+    font-family: var(--font-heading);
+}
+
+.menu-item a {
+    flex: 1;
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+.menu-item a:hover {
+    color: var(--accent-color);
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* === Inputs and Buttons === */
+input[type="text"] {
+    background-color:var(--bg-color);
+    border: 1px solid var(--accent-color);
+    padding: 0.5rem;
+    color: var(--fg-color);
+    width: 80%;
+    margin-top: 0.5rem;
+}
+
+button, .btn {
+    margin-top: 0.5rem;
+    background: var(--accent-color);
+    color:var(--bg-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+button:hover, .btn:hover {
+    background: var(--accent-color);
+    color:var(--bg-color);
+}
+
+/* === QR Scanner === */
+#qr-result, #manual-result {
+    margin-top: 0.5rem;
+    color: var(--fg-color);
+}
+
+
+.scanner-container {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap; /* Allows stacking on small screens */
+}
+
+.scanner-left {
+  flex: 1;
+  min-width: 100px;
+}
+
+.scanner-right {
+  flex: 1;
+  min-width: 160px;
+}
+
+#qr-reader {
+  width: 100%;
+  max-height: 120px;
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 5px var(--accent-color);
+}
+
+#manual-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+
+/* === Images === */
+img, canvas, input[type="text"] {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* === Main Panel Formatting === */
+.panel-section {
+  padding: 0rem 1rem 0.25rem;
+}
+
+.panel-section h1, h2 {
+  color: var(--accent-color);
+  text-transform: uppercase;
+  font-family: var(--font-heading);
+  letter-spacing: 0.5rem;
+}
+
+.entry {
+  font-size: 0.8rem;
+  margin: 0.5rem 0rem 2rem;
+}
+
+.entry h3 {
+  font-family: var(--font-main);
+  padding: 0;
+  margin: 0;
+}
+
+.meta {
+  font-family: var(--font-main);
+  color: var(--muted-color);
+  padding: 0;
+  margin: 0;
+}
+
+/* Haven't reveiewed the following */
+
+.panel-data-block p {
+  margin: 0.3rem 0;
+}
+
+.panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.panel-notes {
+  margin-top: 1rem;
+  font-style: italic;
+  color: var(--muted-color);
+}
+
+/* === Ghesa Array Formatting === */
+.ghesa-animation-wrapper {
+    margin: 1rem 0;
+    background-color:var(--bg-color);
+    padding: 1rem;
+    border: 1px solid var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
+    overflow: hidden;
+}
+
+.ghesa-beam {
+    width: 100%;
+    height: 60px;
+}
+
+/* === Comms Formatting === */
+.comm-section {
+    margin-bottom: 1.5rem;
+    background-color: var(--bg-color);
+    border: 1px solid var(--accent-color);
+    padding: 1rem;
+    box-shadow: 0 0 5px var(--accent-color);
+}
+
+.comm-section h3 {
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.comm-section textarea,
+.comm-section input,
+.comm-section select {
+    width: 100%;
+    padding: 0.5rem;
+    background-color:var(--bg-color);
+    border: 1px solid var(--accent-color);
+    color: var(--fg-color);
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.incoming-messages {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.95rem;
+    color: var(--fg-color);
+}
+
+.inactive-message {
+    font-style: italic;
+    color: var(--muted-color);
+    text-align: center;
+    margin-top: 2rem;
+}
+
+
+/* === KISS Interface Formatting === */
+.map-mini {
+    border: 1px dashed var(--accent-color);
+    height: 200px;
+    margin: 1rem 0;
+    background-color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.log {
+    background-color: var(--bg-color);
+    border: 1px solid var(--accent-color);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.log ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.log li {
+    margin: 0.5rem 0;
+    color: var(--fg-color);
+}
+
+.override {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border: 1px solid var(--accent-color);
+}
+
+.restricted-msg {
+    color: var(--muted-color);
+    font-style: italic;
+}
+
+.targeting-form {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.targeting-form input[type="text"] {
+    flex: 1;
+}
+
+/* === Power Distribution Formatting === */
+.power-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.power-table th, .power-table td {
+  border: 1px solid var(--accent-color);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.power-slider {
+  width: 100%;
+}
+
+.total-power-status {
+  margin-top: 1rem;
+  font-family: var(--font-main);
+  color: var(--accent-color);
+}
+
+
+
+/* === Security Formatting === */
+.alert-log {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 1rem;
+}
+
+.alert-log li {
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--muted-color);
+}
+
+.lockdown-buttons button {
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+.status-label {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.2rem;
+  font-weight: bold;
+}
+
+.status-yellow {
+  background-color: var(--warning-color);
+  color:var(--bg-color);
+}
+
+.btn-danger {
+  background-color: var(--alert-color);
+}
+
+/* === Environmental Control Formatting === */
+.env-list {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 1rem;
+}
+
+.env-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px dotted var(--muted-color);
+}
+
+.env-controls button,
+.purge-controls button {
+  margin: 0.3rem 0.5rem 0.3rem 0;
+}
+
+.purge-controls p {
+  font-size: 0.85rem;
+  color: var(--alert-color);
+}
+
+.btn-danger {
+  background-color: var(--alert-color);
+}
+
+
+/* === Maintenance Queue Formatting === */
+.task-list {
+  margin-top: 1rem;
+}
+
+.task-item {
+  border: 1px solid var(--muted-color);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: var(--bg-color);
+}
+
+.task-item strong {
+  font-size: 1.1rem;
+  color: var(--accent-color);
+}
+
+.task-controls {
+  margin-top: 1rem;
+}
+
+.task-controls .btn {
+  margin-right: 0.5rem;
+}
+
+/* === Info Security Formatting === */
+.infosec-section {
+  margin-top: 1.5rem;
+}
+
+.infosec-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.infosec-log li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--muted-color);
+}
+
+.infosec-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.infosec-table th, .infosec-table td {
+  padding: 0.5rem;
+  border: 1px solid var(--muted-color);
+  text-align: left;
+}
+
+
+/* === Inspect Formatting === */
+.inspect-block {
+  background-color: var(--bg-color);
+  padding: 1rem;
+  border: 1px solid var(--muted-color);
+  border-radius: 5px;
+  margin-top: 1rem;
+}
+
+.inspect-block h3 {
+  color: var(--accent-color);
+  margin-bottom: 0.5rem;
+}
+
+.inspect-block p {
+  margin: 0.25rem 0;
+}
+
+.inspect-block.muted {
+  color: var(--muted-color);
+  text-align: center;
+  font-style: italic;
+}
+
+
+/* === Restricted Lab Formatting === */
+.alien-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 2rem auto;
+  max-width: 300px;
+}
+
+.matrix-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.alien-cell {
+  width: 60px;
+  height: 60px;
+  background-color: var(--bg-color);
+  border: 2px solid var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: default;
+  user-select: none;
+  font-family: var(--font-heading);
+  transition: background 0.3s;
+}
+
+.alien-cell:hover {
+  background-color: var(--accent-color);
+  color:var(--bg-color);
+}
+
+.lab-warning {
+  text-align: center;
+  color: var(--alert-color);
+  margin-top: 2rem;
+  font-style: italic;
+}
+
+
+/* === BioLab Formatting === */
+.biolab-status ul {
+  list-style-type: square;
+  padding-left: 1.5rem;
+  color: var(--text-main);
+}
+
+.biolab-controls {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bio-warning {
+  margin-top: 2rem;
+  color: var(--text-alert);
+  font-weight: bold;
+  font-style: italic;
+}
+
+
+/* === Command Formatting === */
+.warning-text {
+  color: var(--text-alert);
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.auth-status span.unauthorized {
+  color: var(--accent-muted);
+}
+.auth-status span.authorized {
+  color: var(--text-strong);
+  font-weight: bold;
+}
+
+.hex-keypad {
+  margin: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(4, 3rem);
+  gap: 0.5rem;
+}
+
+.hex-button {
+  padding: 0.75rem;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-highlight);
+  color: var(--text-main);
+  font-weight: bold;
+  font-family: var(--font-main);
+  cursor: pointer;
+}
+
+.hex-button:hover {
+  background-color: var(--accent-glow);
+  color: var(--bg-color);
+}
+
+#hex-display {
+  margin-bottom: 0.5rem;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
+.alert-btn {
+  background-color: var(--text-alert);
+  color: var(--bg-color);
+}

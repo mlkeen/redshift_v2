@@ -4,63 +4,87 @@
     <meta charset="UTF-8">
     <title>{{ panel.title }}</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <style>
-        #qr-reader {
-            width: 250px;
-            margin-top: 1rem;
-        }
-    </style>
+    {% if panel.system %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/' + panel.system|lower + '.css') }}">
+    {% endif %}
 </head>
 <body>
 
 <div class="panel-container">
     <div class="title-bar">
+        <svg viewBox="0 0 100 100" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+            <style>
+                .L1 {
+                stroke: var(--bg-color);
+                stroke-width: 14;
+                }
+                .L2 {
+                stroke: var(--bg-color);
+                stroke-width: 6;
+                }
+            </style>
+            <circle cx="50" cy="50" r="40" fill="currentColor" />
+
+            <g transform="rotate(325, 50, 50) translate(-5, -5)">
+                <path d="M 0,50 C 35,70, 70,70, 100,50" class="L1" fill="transparent" />
+            </g>
+
+            <g transform="rotate(310, 50, 50) translate(10, 10)">
+                <path d="M 0,50 C 35,75, 70,75, 100,50" class="L2" fill="transparent" />
+            </g>
+
+
+
+        </svg>
+
         {{ panel.system }} // {{ panel.location }}{% if player %} // {{ player.name }}{% endif %}
+
+        <div class="fictional-clock">
+            Stardate: {{ fictional_time.strftime('%Y.%j') }} <br>
+            Time: {{ fictional_time.strftime('%H:%M:%S') }}
+        </div>
+
     </div>
 
-    <div class="main-display"> 
-        <hr>
+    <div class="panel-content">
+        <div class="main-display"> 
+            {% if display %}
+                {% include "panels/" + display + ".html" %}
+            {% else %} 
+                {% include "panels/" + panel.primary_display + ".html" %}
+            {% endif %}
+        </div>
 
-        <h3>Manual Code Entry</h3>
-        <form id="manual-form">
-            <input id="manual-code" type="text" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{3}" placeholder="ABC-123" required>
-            <button type="submit">Submit Code</button>
-        </form>
-        <div id="manual-result" style="margin-top: 1rem; font-weight: bold;"></div>
-
-        <div id="qr-reader"></div>
-        <div id="qr-scan-result" style="margin-top: 0.5rem; font-weight: bold; color: green;"></div>
-
-
-        {% if display %}
-            {% include "panels/" + display + ".html" %}
-        {% else %}
-            {% include panel.primary_display %}
-        {% endif %}
-    </div>
-
-    <div class="menu">
-        <h3>Menu</h3>
-        {% for key, label in menu_items %}
-            <div class="menu-item">
-                <span class="menu-key">{{ key }}</span>
-                <a href="{{ url_for('main.panel_view',
-                        panel_code=panel.code,
-                        display=(label | replace(' ', '_')))
-                    + ('/' + player.code if player else '')
-                    + ('/' + interactable.code if interactable else '') }}">
-                    {{ label }}
-                </a>
+        <div class="menu">
+            <div class="scanner-container">
+            <div class="scanner-left">
+                <div id="qr-reader"></div>
+                <div id="qr-scan-result"></div>
             </div>
-        {% endfor %}
+            <div class="scanner-right">
+                <form id="manual-form">
+                <input id="manual-code" type="text" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{3}" placeholder="ABC-123" required>
+                <button type="submit">Submit Code</button>
+                </form>
+                <div id="manual-result"></div>
+            </div>
+            </div>
 
-        {% if player_menu %}
-            <hr>
-            <h4>Player Options</h4>
-            {% for key, label in player_menu.items() %}
-                <div class="menu-item"><span class="menu-key">{{ key }}</span>{{ label }}</div>
+            {% for key, label in menu_items %}
+                <div class="menu-item">
+                    <span class="menu-key">{{ key }}</span>
+                    <a href="{{ url_for('main.panel_view',
+                            panel_code=panel.code,
+                            display=(label | replace(' ', '_')))
+                        + ('/' + player.code if player else '')
+                        + ('/' + interactable.code if interactable else '') }}">
+                        {{ label }}
+                    </a>
+                </div>
             {% endfor %}
-        {% endif %}
+
+
+        </div>
     </div>
 </div>
 

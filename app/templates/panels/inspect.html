@@ -1,0 +1,32 @@
+<div class="panel-section">
+  <h2>Inspect Module</h2>
+  <p>This terminal inspects interactables in the presence of a registered user. If both a user and object are scanned, relevant data will be displayed below.</p>
+
+  {% if player and interactable %}
+    <div class="inspect-block">
+      <h3>🧍 Player Profile</h3>
+      <p><strong>Name:</strong> {{ player.name }}</p>
+      <p><strong>Affiliation:</strong> {{ player.affiliation or 'Unregistered' }}</p>
+      <p><strong>Status:</strong> {{ player.status or 'Unknown' }}</p>
+
+      <hr>
+
+      <h3>🔧 Interactable Object</h3>
+      <p><strong>Code:</strong> {{ interactable.code }}</p>
+      <p><strong>Type:</strong> {{ interactable.type or 'Unclassified' }}</p>
+      <p><strong>Description:</strong> {{ interactable.description or 'No description available.' }}</p>
+    </div>
+  {% else %}
+    <div class="inspect-block muted">
+      <p>
+        {% if not player and not interactable %}
+          Awaiting scan of both player and object…
+        {% elif not player %}
+          Awaiting player scan…
+        {% elif not interactable %}
+          Awaiting object scan…
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+</div>

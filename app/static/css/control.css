@@ -1,0 +1,142 @@
+/* Base settings */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #0c0c10;
+  color: #e6e6f0;
+  line-height: 1.6;
+}
+
+header, nav, main, footer {
+  padding: 1rem;
+}
+
+a {
+  color: #00d9ff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.control-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #121621;
+  color: #e6e6f0;
+  padding: 0.75rem 1.5rem;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  border-bottom: 1px solid #2c2f3a;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+.nav-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #00d9ff;
+  letter-spacing: 1px;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li a {
+  color: #e6e6f0;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav-links li a:hover {
+  color: #00ffcc;
+}
+
+/* Space for fixed nav */
+body {
+  padding-top: 60px; /* Adjust if nav height changes */
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .nav-links {
+    flex-direction: column;
+    background-color: #1a1a2e;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 100%;
+    display: none;
+  }
+
+  .nav-links.show {
+    display: flex;
+  }
+}
+
+
+
+/* Layout wrapper */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Control dashboard layout */
+.dashboard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.panel-box {
+  background-color: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  flex: 1 1 300px;
+  max-width: 600px;
+  box-shadow: 0 0 10px #222;
+}
+
+.panel-box h2 {
+  font-size: 1.2rem;
+  margin-top: 0;
+}
+
+/* Timer display */
+.timer {
+  font-size: 1.5rem;
+  text-align: center;
+  background-color: #111822;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  color: #00ffcc;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .dashboard {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .panel-box {
+    max-width: 90%;
+  }
+}
+
+

@@ -1,0 +1,51 @@
+<div class="panel-section">
+  <h2 class="panel-heading">Communications Console</h2>
+
+  {% if player %}
+    <div class="comm-section">
+      <h3>📣 Stationwide Alerts</h3>
+      <p>Issue a general broadcast across all station systems.</p>
+      <button class="btn">Send Red Alert</button>
+      <button class="btn">Send Yellow Alert</button>
+      <button class="btn">Clear Alert</button>
+    </div>
+
+    <hr>
+
+    <div class="comm-section">
+      <h3>📡 Local Ship Communications</h3>
+      <p>Transmit coded audio messages to ships within comms range.</p>
+      <input type="text" placeholder="Enter ship call sign..." />
+      <textarea placeholder="Record or type your message here..." rows="3"></textarea>
+      <button class="btn">Send Local Audio</button>
+    </div>
+
+    <hr>
+
+    <div class="comm-section">
+      <h3>🔦 Long-Distance Tightbeam</h3>
+      <p>Laser communication to distant faction relays. Subject to light-speed delay.</p>
+      <select>
+        <option disabled selected>Select target faction...</option>
+        <option>Pacific Federation Relay</option>
+        <option>Jovian Compact Post</option>
+        <option>Trojan Miner Holdfast</option>
+      </select>
+      <textarea placeholder="Audio message content (max 30s)..." rows="3"></textarea>
+      <button class="btn">Send Tightbeam</button>
+    </div>
+
+    <hr>
+
+    <div class="comm-section">
+      <h3>📥 Incoming Messages</h3>
+      <p>Recent decoded transmissions:</p>
+      <ul class="incoming-messages">
+        <li><strong>[15:03]</strong> — Encrypted ping received from Excelsior</li>
+        <li><strong>[14:55]</strong> — “Status inquiry: Redshift Station, confirm integrity.”</li>
+      </ul>
+    </div>
+  {% else %}
+    <p class="inactive-message">🔒 No active user. Please scan a valid player ID to access communication systems.</p>
+  {% endif %}
+</div>

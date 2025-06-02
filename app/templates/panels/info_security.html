@@ -1,0 +1,45 @@
+<div class="panel-section">
+  <h2>Information Security Terminal</h2>
+  <p>Monitor for intrusion, trace access logs, and — with authorization — execute digital overrides or countermeasures.</p>
+
+  <div class="infosec-section">
+    <h3>System Alerts</h3>
+    <ul class="infosec-log">
+      <li><strong>⚠ Unauthorized login attempt</strong> – Power Grid Interface – 13:42</li>
+      <li><strong>⚠ Suspicious data packet</strong> – External Comms Buffer – 13:29</li>
+      <li><strong>✅ Override attempt blocked</strong> – Environmental Controls – 13:17</li>
+      <li>Normal activity – Medical Terminal – 13:10</li>
+    </ul>
+  </div>
+
+  <div class="infosec-section">
+    <h3>Access Logs</h3>
+    <table class="infosec-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>System</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>13:42</td><td>???</td><td>Power Grid</td><td>Blocked</td></tr>
+        <tr><td>13:29</td><td>EXT-LINK</td><td>Comms</td><td>Flagged</td></tr>
+        <tr><td>13:17</td><td>RHO-983</td><td>Enviro</td><td>Blocked</td></tr>
+        <tr><td>13:10</td><td>EVA-214</td><td>Med Bay</td><td>Granted</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if player %}
+  <div class="infosec-section">
+    <h3>Authorized Tools</h3>
+    <button class="btn btn-sm">Run Trace</button>
+    <button class="btn btn-sm">Deploy Firewall Spike</button>
+    {% if 'X' in player.code %}
+      <button class="btn btn-sm">Attempt Digital Override</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

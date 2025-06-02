@@ -1,13 +1,17 @@
 from app.extensions import db 
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
+
 
 class Control(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    name = db.Column(db.String(100))
+    pronouns = db.Column(db.String(50))
+    email_address = db.Column(db.String(120))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -15,30 +19,23 @@ class Control(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+
+class ControlInvite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=False)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+
+
 class Panel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(20), unique=True, nullable=False)
     system = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(100), nullable=False)
     primary_display = db.Column(db.String(100), nullable=False)  # e.g., 'panels/example_display.html'
-    menu_items = db.Column(db.JSON, nullable=False, default=[])
-
-    def set_default_menu(self):
-        self.menu_items = [
-            {"key": "1", "label": "Status"},
-            {"key": "2", "label": "Polling"},
-            {"key": "3", "label": "Medical Logs"},
-            {"key": "4", "label": "Med Bay"},
-            {"key": "5", "label": "Engineering"},
-            {"key": "6", "label": "Hydroponics"},
-            {"key": "7", "label": "Biolab"},
-            {"key": "8", "label": "Ghesa Array"},
-            {"key": "9", "label": "Redacted Lab"},
-            {"key": "A", "label": "Laser Comms"},
-            {"key": "B", "label": "Crew Roster"},
-            {"key": "C", "label": "Overlay"}
-
-        ]
+    menu_items = db.Column(db.JSON)
 
 class QRObject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,7 +46,29 @@ class QRObject(db.Model):
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(12), unique=True, nullable=False)
-    name = db.Column(db.String(80), nullable=False)
+
+    honorific = db.Column(db.String(20))
+    first_name = db.Column(db.String(50))
+    name = db.Column(db.String(100))  # surname
+    role = db.Column(db.String(100))
+    assignment = db.Column(db.String(100))
+    faction = db.Column(db.String(100))
+
+    system_access = db.Column(db.JSON)  # list of system codes they can use
+    player_menu = db.Column(db.JSON)    # list of menu keys
+    special_options = db.Column(db.JSON)  # list of ability/item/etc keys
+
+    resolve = db.Column(db.Integer)
+    skill = db.Column(db.Integer)
+    knowledge = db.Column(db.Integer)
+    luck = db.Column(db.Integer)
+
+    specialization = db.Column(db.String(100))
+    mini_access = db.Column(db.JSON)  # list of restricted view or mini-panels
+    hidden_objective = db.Column(db.String(500))  # secret goal
+    description = db.Column(db.Text)  # longer text about who they are
+    condition = db.Column(db.JSON)    # list of condition codes
+
 
 class Interactable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -103,21 +122,18 @@ class SpaceObject(db.Model):
 
 class GameState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True, default="default")
+    phase_name = db.Column(db.String(64), default="briefing")
+    phase_start_time = db.Column(db.DateTime, nullable=True)
+    phase_duration_minutes = db.Column(db.Integer, default=40)
 
-    game_name = db.Column(db.String(100), nullable=False)
-    control_code = db.Column(db.String(50), nullable=False)
+    def time_remaining(self):
+        if not self.phase_start_time or not self.phase_duration_minutes:
+            return None
 
-    # UTC time the game actually started
-    start_time = db.Column(db.DateTime, nullable=False)
-
-    # Duration of each phase in seconds (e.g., 300 for 5 minutes)
-    phase_duration = db.Column(db.Integer, nullable=False)
-
-    # Current in-universe time (ISO or custom format)
-    universe_time = db.Column(db.String(100), nullable=True)
-
-    # Optional: track current phase number
-    current_phase = db.Column(db.Integer, default=0)
+        end_time = self.phase_start_time + timedelta(minutes=self.phase_duration_minutes)
+        remaining = end_time - datetime.utcnow()
+        return max(remaining, timedelta(0))  # Avoid negative values
 
 class CommTarget(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,52 @@
+<div class="panel-section">
+  <h2>Power Distribution</h2>
+  <p>View and reroute power between station systems. Overloads and imbalances may result in system failure.</p>
+
+  <table class="power-table">
+    <thead>
+      <tr>
+        <th>System</th>
+        <th>Current Draw</th>
+        <th>Allocated</th>
+        <th>Adjust</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Life Support</td>
+        <td>120 kW</td>
+        <td><input type="range" min="0" max="200" value="120" class="power-slider"></td>
+        <td><button class="btn btn-sm">Set</button></td>
+      </tr>
+      <tr>
+        <td>Comms Array</td>
+        <td>80 kW</td>
+        <td><input type="range" min="0" max="150" value="80" class="power-slider"></td>
+        <td><button class="btn btn-sm">Set</button></td>
+      </tr>
+      <tr>
+        <td>Hydroponics</td>
+        <td>60 kW</td>
+        <td><input type="range" min="0" max="100" value="60" class="power-slider"></td>
+        <td><button class="btn btn-sm">Set</button></td>
+      </tr>
+      <tr>
+        <td>KISS Interface</td>
+        <td>200 kW</td>
+        <td><input type="range" min="0" max="300" value="200" class="power-slider"></td>
+        <td><button class="btn btn-sm">Set</button></td>
+      </tr>
+      <tr>
+        <td>Engineering Bay</td>
+        <td>100 kW</td>
+        <td><input type="range" min="0" max="200" value="100" class="power-slider"></td>
+        <td><button class="btn btn-sm">Set</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="total-power-status">
+    <strong>Total Power Capacity:</strong> 800 kW<br>
+    <strong>Remaining:</strong> 240 kW
+  </div>
+</div>

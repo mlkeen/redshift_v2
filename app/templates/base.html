@@ -9,24 +9,72 @@
     nav a { margin-right: 1rem; }
   </style>
 </head>
+
 <body>
 
-<nav>
-  <a href="{{ url_for('main.index') }}">Home</a>
+
+  <nav class="control-nav">
+    <ul class="nav-links">
+      {% if current_user.is_authenticated %}
+      <li><a href="{{ url_for('main.control_dashboard') }}">Control Dashboard</a></li>
+      <li><a href="{{ url_for('main.start_phase') }}">Start New Phase</a></li>
+      <li><a href="{{ url_for('main.invite_control') }}">Invite Control</a></li>
+      <li><a href="{{ url_for('main.control_edit_list', object_type='players') }}">Players</a></li>
+      <li><a href="{{ url_for('main.control_edit_list', object_type='panels') }}">Panels</a></li>
+      <li><a href="{{ url_for('main.control_edit_list', object_type='interactables') }}">Interactables</a></li>
+      <li><a href="{{ url_for('main.control_edit_list', object_type='spaceobjects') }}">SpaceObjects</a></li>
+      <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+      {% else %}
+      <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+
   {% if current_user.is_authenticated %}
     <span>Logged in as {{ current_user.username }}</span>
-    <a href="{{ url_for('main.scan') }}">Test Scan</a>
-    <a href="{{ url_for('main.control_edit_list', object_type='players') }}">Players</a>
-    <a href="{{ url_for('main.control_edit_list', object_type='panels') }}">Panels</a>
-    <a href="{{ url_for('main.control_edit_list', object_type='interactables') }}">Interactables</a>
-    <a href="{{ url_for('main.control_edit_list', object_type='spaceobjects') }}">SpaceObjects</a>
-</ul>
+  
+  Game: {{ game_state.name }} Phase: {{ game_state.phase_name or "Not Started" }} 
 
-    <a href="{{ url_for('auth.logout') }}">Logout</a>
+  {% if time_remaining %}
+      Remaining: {{ time_remaining.seconds // 60 }} minutes {{ time_remaining.seconds % 60 }} seconds
   {% else %}
-    <a href="{{ url_for('auth.login') }}">Login</a>
+      No phase active.
   {% endif %}
-</nav>
+  
+  
+  {% endif %}
+
+
+
+
+
+
+<a href="{{ url_for('main.scan') }}">Test Scan</a>
+
+
+
+
+
+
+
+
+  <div class="container">
+    <div class="timer">Time Remaining: {{ time_remaining }}</div>
+    <div class="dashboard">
+      <div class="panel-box">
+        <h2>System Access</h2>
+        <!-- panel content -->
+      </div>
+      <div class="panel-box">
+        <h2>Game State</h2>
+        <!-- panel content -->
+      </div>
+      <!-- Add more panels as needed -->
+    </div>
+  </div>
+
+
+
 
 {% block content %}{% endblock %}
 

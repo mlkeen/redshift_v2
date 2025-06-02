@@ -22,7 +22,7 @@
       </td>
       {% if object_type == "panels" %}
       <td>
-        <a href="{{ url_for('main.panel_view', panel_code=item.code) }}" class="btn btn-sm btn-secondary">Open</a>
+        <a href="{{ url_for('main.panel_view', panel_code=item.code, display=item.primary_display) }}" class="btn btn-sm btn-secondary">Open</a>
       </td>
       {% endif %}
     </tr>

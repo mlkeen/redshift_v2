@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+  <h2 class="mb-4 text-center">Redshift Control Registration</h2>
+
+  <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      {{ form.username.label(class="form-label") }}
+      {{ form.username(class="form-control") }}
+      {% for error in form.username.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.password.label(class="form-label") }}
+      {{ form.password(class="form-control") }}
+      {% for error in form.password.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.confirm_password.label(class="form-label") }}
+      {{ form.confirm_password(class="form-control") }}
+      {% for error in form.confirm_password.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.email_address.label(class="form-label") }}
+      {{ form.email_address(class="form-control") }}
+      {% for error in form.email_address.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-control") }}
+      {% for error in form.name.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      {{ form.pronouns.label(class="form-label") }}
+      {{ form.pronouns(class="form-select") }}
+      {% for error in form.pronouns.errors %}
+        <div class="form-text text-danger">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="text-center">
+      {{ form.submit(class="btn btn-success") }}
+    </div>
+  </form>
+</div>
+{% endblock %}

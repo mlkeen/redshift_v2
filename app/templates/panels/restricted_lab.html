@@ -1,0 +1,18 @@
+<div class="panel-section">
+  <h2>Restricted Laboratory Interface</h2>
+  <p>Access to advanced xenological substrates is tightly controlled. Any interaction with this matrix must be approved by station Control or via biometric overrides.</p>
+
+  <div class="alien-matrix">
+    {% for row in range(4) %}
+      <div class="matrix-row">
+        {% for col in range(4) %}
+          <div class="alien-cell">
+            &#x1F52E; <!-- default alien-like placeholder, can be replaced -->
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="lab-warning">⚠️ Unauthorized manipulation may trigger a lockout or defensive purge protocol.</p>
+</div>

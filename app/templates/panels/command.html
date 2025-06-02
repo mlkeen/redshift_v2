@@ -1,0 +1,61 @@
+<div class="panel-section">
+  <h2>Command Console: Self-Destruct Protocol</h2>
+  <p class="warning-text">⚠️ Initiating this process will irreversibly destroy EOS Station and all occupants. Dual authorization is required.</p>
+
+  <div class="auth-status">
+    <h3>Authorization Status</h3>
+    <p>Terminal Alpha: <span id="auth-a-status" class="unauthorized">Not Authorized</span></p>
+    <p>Terminal Beta: <span id="auth-b-status" class="unauthorized">Not Authorized</span></p>
+  </div>
+
+  <div class="code-entry">
+    <h3>Enter Self-Destruct Code</h3>
+    <div id="hex-display">Code: <span id="code-sequence">____</span></div>
+    <div class="hex-keypad">
+      {% for row in [['0', '1', '2', '3'], ['4', '5', '6', '7'], ['8', '9', 'A', 'B'], ['C', 'D', 'E', 'F']] %}
+        <div class="hex-row">
+          {% for key in row %}
+            <button class="hex-button" onclick="appendHex('{{ key }}')">{{ key }}</button>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <button class="btn" onclick="clearHex()">Clear</button>
+  </div>
+
+  <div class="confirm-section">
+    <h3>Final Step</h3>
+    <button class="btn alert-btn" disabled id="confirm-destruct">Activate Self-Destruct</button>
+  </div>
+</div>
+
+<script>
+  let hexCode = '';
+
+  function appendHex(char) {
+    if (hexCode.length < 4) {
+      hexCode += char;
+      document.getElementById("code-sequence").innerText = hexCode.padEnd(4, '_');
+    }
+  }
+
+  function clearHex() {
+    hexCode = '';
+    document.getElementById("code-sequence").innerText = '____';
+  }
+
+  // Stub logic — Control will later replace this with real validation + terminal sync
+  const authA = true;
+  const authB = true;
+
+  if (authA) document.getElementById("auth-a-status").innerText = "Authorized";
+  if (authB) document.getElementById("auth-b-status").innerText = "Authorized";
+
+  if (authA && authB) {
+    document.getElementById("auth-a-status").classList.remove("unauthorized");
+    document.getElementById("auth-b-status").classList.remove("unauthorized");
+    document.getElementById("auth-a-status").classList.add("authorized");
+    document.getElementById("auth-b-status").classList.add("authorized");
+    document.getElementById("confirm-destruct").disabled = false;
+  }
+</script>
