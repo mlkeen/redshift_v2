@@ -12,7 +12,8 @@
 
 <div class="panel-container">
     <div class="title-bar">
-        <svg viewBox="0 0 100 100" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+        <div class="logo">
+          <svg viewBox="0 0 100 100" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
             <style>
                 .L1 {
                 stroke: var(--bg-color);
@@ -24,26 +25,19 @@
                 }
             </style>
             <circle cx="50" cy="50" r="40" fill="currentColor" />
-
             <g transform="rotate(325, 50, 50) translate(-5, -5)">
                 <path d="M 0,50 C 35,70, 70,70, 100,50" class="L1" fill="transparent" />
             </g>
-
             <g transform="rotate(310, 50, 50) translate(10, 10)">
                 <path d="M 0,50 C 35,75, 70,75, 100,50" class="L2" fill="transparent" />
             </g>
-
-
-
-        </svg>
-
-        {{ panel.system }} // {{ panel.location }}{% if player %} // {{ player.name }}{% endif %}
-
-        <div class="fictional-clock">
-            Stardate: {{ fictional_time.strftime('%Y.%j') }} <br>
-            Time: {{ fictional_time.strftime('%H:%M:%S') }}
+          </svg>
         </div>
 
+        <div class="title-text">
+            <div class="main-title">{{ panel.system }} // {{ panel.location }}{% if player %} // {{ player.name }}{% endif %}</div>
+            <div class="subtitle">{{ fictional_time.strftime('%Y-%m-%d') }} {{ fictional_time.strftime('%H:%M:%S') }}</div>
+          </div>
     </div>
 
     <div class="panel-content">

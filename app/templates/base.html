@@ -3,18 +3,27 @@
 <head>
   <meta charset="utf-8">
   <title>REDSHIFT v2</title>
-  <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    nav { margin-bottom: 1rem; }
-    nav a { margin-right: 1rem; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/control.css') }}">
 </head>
 
 <body>
 
 
   <nav class="control-nav">
-    <ul class="nav-links">
+    <div class="nav-header">
+      <span class="nav-title">REDSHIFT //
+        {% if current_user.is_authenticated %}
+          {{ current_user.username }} // Game: {{ game_state.name }} // Phase: {{ game_state.phase_name or "Not Started" }} 
+          {% if time_remaining %}
+            {{ time_remaining.seconds // 60 }}:{{ time_remaining.seconds % 60 }} Remaining
+          {% else %}
+            INACTIVE
+          {% endif %}
+        {% endif %}
+      </span>
+      <button class="nav-toggle" onclick="toggleMenu()">☰</button>
+    </div>
+    <ul id="nav-menu" class="nav-menu">
       {% if current_user.is_authenticated %}
       <li><a href="{{ url_for('main.control_dashboard') }}">Control Dashboard</a></li>
       <li><a href="{{ url_for('main.start_phase') }}">Start New Phase</a></li>
@@ -30,53 +39,19 @@
     </ul>
   </nav>
 
-  {% if current_user.is_authenticated %}
-    <span>Logged in as {{ current_user.username }}</span>
-  
-  Game: {{ game_state.name }} Phase: {{ game_state.phase_name or "Not Started" }} 
 
-  {% if time_remaining %}
-      Remaining: {{ time_remaining.seconds // 60 }} minutes {{ time_remaining.seconds % 60 }} seconds
-  {% else %}
-      No phase active.
-  {% endif %}
-  
-  
-  {% endif %}
+  <div class="control-box">
+    {% block content %}{% endblock %}
+ 
+    <p>In Game Time: {{ fictional_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
 
-
-
-
-
-
-<a href="{{ url_for('main.scan') }}">Test Scan</a>
-
-
-
-
-
-
-
-
-  <div class="container">
-    <div class="timer">Time Remaining: {{ time_remaining }}</div>
-    <div class="dashboard">
-      <div class="panel-box">
-        <h2>System Access</h2>
-        <!-- panel content -->
-      </div>
-      <div class="panel-box">
-        <h2>Game State</h2>
-        <!-- panel content -->
-      </div>
-      <!-- Add more panels as needed -->
-    </div>
   </div>
 
-
-
-
-{% block content %}{% endblock %}
-
+<script>
+  function toggleMenu() {
+    const menu = document.getElementById('nav-menu');
+    menu.classList.toggle('show');
+  }
+</script>
 </body>
 </html>
