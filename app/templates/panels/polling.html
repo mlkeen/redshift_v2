@@ -1,26 +1,84 @@
 <div class="panel-section">
   <h2>Stationwide Polling Interface</h2>
 
-  <div class="entry">
-    <h3>🔘 Poll Item Two</h3>
-    <p class="meta">Posted by: Lt. M. Navarro — Closes at: 18:45</p>
-    <p>Should we divert power from Hydroponics to the Ghesa Array?</p>
-    <div class="options">
-      <button class="btn">Yes</button>
-      <button class="btn">No</button>
+
+{% if player and 'poll.create' in (player.permissions or []) %}
+  <form method="POST" action="{{ request.full_path.split('?')[0] }}">
+    <input type="hidden" name="form_type" value="create_poll">
+    {{ form.hidden_tag() }}
+    <label for="question">Polling Question:</label>
+    {{ form.question }}
+    <label for="options">Options (comma-separated):</label>
+    {{ form.options }}
+    <button type="submit">Create Poll</button>
+  </form>
+{% endif %}
+
+
+  {% if polls %}
+    <div class="polls">
+      {% for poll in polls %}
+        <div class="poll">
+          <strong>{{ poll.question }}</strong>
+          {% if poll.is_open %}
+            <span class="badge">Open - Closes in {{ ((poll.created_at + timedelta(minutes=5)) - now).seconds // 60 }} min</span>
+            <ul>
+              {% for option, voters in poll.votes.items() %}
+                <li>{{ option }} – {{ voters|length }} vote{{ 's' if voters|length != 1 else '' }}</li>
+              {% endfor %}
+            </ul>
+            
+            {% if poll.is_open and player %}
+              {% set already_voted = false %}
+              {% for voters in poll.votes.values() %}
+                {% if player.id in voters %}
+                  {% set already_voted = true %}
+                {% endif %}
+              {% endfor %}
+
+              {% if not already_voted %}
+                <form method="POST" style="margin-top: 0.5rem;">
+                  <input type="hidden" name="poll_id" value="{{ poll.id }}">
+                  <input type="hidden" name="form_type" value="vote">
+                  <label for="selected_option_{{ poll.id }}">Vote:</label>
+                  <select name="selected_option" id="selected_option_{{ poll.id }}">
+                    {% for option in poll.votes.keys() %}
+                      <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit">Submit Vote</button>
+                </form>
+              {% else %}
+                <p><em>You have already voted in this poll.</em></p>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            <span class="badge">Closed</span>
+
+            {% set ns = namespace(total_votes=0, winning_option=None, winning_count=0) %}
+
+            {% for option, voters in poll.votes.items() %}
+              {% set ns.total_votes = ns.total_votes + voters | length %}
+              {% if voters | length > ns.winning_count %}
+                {% set ns.winning_option = option %}
+                {% set ns.winning_count = voters | length %}
+              {% endif %}
+            {% endfor %}
+
+            {% if ns.total_votes > 0 %}
+              {% set winning_percentage = (ns.winning_count / ns.total_votes * 100) | round(1) %}
+              <p><strong>Winning Option:</strong> {{ ns.winning_option }} ({{ winning_percentage }}%)</p>
+            {% else %}
+              <p><em>No votes were cast in this poll.</em></p>
+            {% endif %}
+          {% endif %}
+
+          
+        </div>
+        <hr>
+      {% endfor %}
     </div>
-  </div>
-
-    <div class="entry">
-    <h3>🔘 Poll Item One</h3>
-    <p class="meta">Posted by: Capt. Mao — Closed</p>
-    <p>This is the tex of the question?</p>
-    <div class="options">
-      <button class="btn">Yes</button>
-      <button class="btn">No</button>
-    </div>
-  </div>
-
-
-
+  {% else %}
+    <p>No polls available.</p>
+  {% endif %}
 </div>

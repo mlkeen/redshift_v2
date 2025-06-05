@@ -39,72 +39,107 @@
             <div class="subtitle">{{ fictional_time.strftime('%Y-%m-%d') }} {{ fictional_time.strftime('%H:%M:%S') }}</div>
           </div>
     </div>
+  
+  <div class="panel-content"> 
+    <div class="main-display"> 
+      {% set normalized_display = (display or panel.primary_display)|replace(' ', '_')|lower %}
+      {% set known_templates = ['comms', 'status', 'security', 'polling', 'inspect', 'biolab', 'command', 'environmental_control', 'kiss_interface', 'power_distribution', 'engineering', 'maintenance_queue', 'hydroponics', 'object_vector_interface', 'laser_comms'] %}
 
-    <div class="panel-content">
-        <div class="main-display"> 
-            {% if display %}
-                {% include "panels/" + display + ".html" %}
-            {% else %} 
-                {% include "panels/" + panel.primary_display + ".html" %}
-            {% endif %}
+      {% if normalized_display in known_templates %}
+        {% include "panels/" + normalized_display + ".html" %}
+      {% else %}
+        <div style="padding: 1rem;">
+          <strong>Invalid panel display:</strong> "{{ normalized_display }}".<br />
+          Please scan a valid terminal or choose a valid menu item.
         </div>
-
-        <div class="menu">
-            <div class="scanner-container">
-            <div class="scanner-left">
-                <div id="qr-reader"></div>
-                <div id="qr-scan-result"></div>
-            </div>
-            <div class="scanner-right">
-                <form id="manual-form">
-                <input id="manual-code" type="text" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{3}" placeholder="ABC-123" required>
-                <button type="submit">Submit Code</button>
-                </form>
-                <div id="manual-result"></div>
-            </div>
-            </div>
-
-            {% for key, label in menu_items %}
-                <div class="menu-item">
-                    <span class="menu-key">{{ key }}</span>
-                    <a href="{{ url_for('main.panel_view',
-                            panel_code=panel.code,
-                            display=(label | replace(' ', '_')))
-                        + ('/' + player.code if player else '')
-                        + ('/' + interactable.code if interactable else '') }}">
-                        {{ label }}
-                    </a>
-                </div>
-            {% endfor %}
-
-
-        </div>
+      {% endif %}
     </div>
+
+
+    <div class="menu">
+      {% for key, label in menu_items %}
+      <div class="menu-item">
+        <span class="menu-key">{{ key }}</span>
+        <a href="{{ url_for('main.panel_view',
+          panel_code=panel.code,
+          display=label | replace(' ', '_'),
+          player_code=player.code if player else None,
+          interactable_code=interactable.code if interactable else None) }}">
+            {{ label }}
+        </a>
+      </div>
+      {% endfor %}
+      {% if player %}
+      <div class="menu-item">
+        <span class="menu-key">⏏</span>
+        <form method="POST" style="display:inline;" onsubmit="return confirm('Log out?');">
+          <input type="hidden" name="form_type" value="logout">
+          <a href="?logout=1">Logout</a>
+        </form>
+      </div>
+      {% endif %}
+
+            <div class="scanner-container">
+        <div class="scanner-left">
+          <div id="qr-reader"></div>
+          <div id="qr-scan-result"></div>
+        </div>
+        <div class="scanner-right">
+          <form id="manual-form">
+            <input id="manual-code" type="text" pattern="[A-Za-z0-9]{3}-[A-Za-z0-9]{3}" placeholder="ABC-123" required>
+            <button type="submit">Submit Code</button>
+          </form>
+          <div id="manual-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
   function redirectFromCode(code) {
     const parts = window.location.pathname.split('/').filter(Boolean);
-    let [_, currentPanel, currentDisplay, currentPlayer, currentInteractable] = parts;
 
+    let currentPanel = null;
+    let currentDisplay = null;
+    let currentPlayer = null;
+    let currentInteractable = null;
+
+    // Parse existing path
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === 'panel') currentPanel = parts[i + 1];
+      if (parts[i] === 'display') currentDisplay = parts[i + 1];
+      if (parts[i] === 'player') currentPlayer = parts[i + 1];
+      if (parts[i] === 'interact') currentInteractable = parts[i + 1];
+    }
+
+    // Update based on new scan
     if (code.startsWith("T")) {
       currentPanel = code;
+      currentDisplay = null;
+      currentPlayer = null;
+      currentInteractable = null;
     } else if (code.startsWith("E") || code.startsWith("R") || code.startsWith("P")) {
       currentPlayer = code;
     } else {
       currentInteractable = code;
     }
 
-    let path = `/panel/${currentPanel}`;
-    if (currentDisplay) path += `/${currentDisplay}`;
-    if (currentPlayer) path += `/${currentPlayer}`;
-    if (currentInteractable) path += `/${currentInteractable}`;
+    if (!currentPanel || !currentDisplay) {
+      alert("Scan the panel first to establish context.");
+      return;
+    }
 
-    // Delay redirect to show scanned result
+    // Rebuild the full path with named segments
+    let path = `/panel/${currentPanel}/display/${currentDisplay}`;
+    if (currentPlayer) path += `/player/${currentPlayer}`;
+    if (currentInteractable) path += `/interact/${currentInteractable}`;
+
     setTimeout(() => {
       window.location.href = path;
     }, 1500);
   }
+
 
   const qrReader = new Html5Qrcode("qr-reader");
 

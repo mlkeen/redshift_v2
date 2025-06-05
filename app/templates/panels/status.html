@@ -1,1 +1,16 @@
-<p>This is the status display</p>
+<div class="panel-section">
+  <h2>Status Overview</h2>
+  <p>System overview and status indicators will go here.</p>
+
+    <div class="greeble-matrix">
+    {% for row_index in range(32) %}
+        <div class="greeble-row">
+        {% for col_index in range(64) %}
+            {% set delay_index = row_index * 64 + col_index %}
+            <div class="greeble-square" style="animation-delay: {{ (delay_index % 10) * (range(1, 51) | random) * 0.8 }}s;"></div>
+        {% endfor %}
+        </div>
+    {% endfor %}
+    </div>
+
+</div>

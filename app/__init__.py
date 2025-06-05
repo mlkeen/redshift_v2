@@ -3,6 +3,7 @@ from .extensions import db, mail
 from flask_login import LoginManager
 from .routes import main 
 from dotenv import load_dotenv
+import os
 
 login_manager = LoginManager()
 
@@ -15,6 +16,10 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
+
+    # Ensure the folder exists
+    os.makedirs(app.config['AUDIO_UPLOAD_FOLDER'], exist_ok=True)
+    print("AUDIO_UPLOAD_FOLDER =", app.config['AUDIO_UPLOAD_FOLDER'])
 
 
     # Import models to register with SQLAlchemy

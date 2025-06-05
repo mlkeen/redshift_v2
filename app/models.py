@@ -3,6 +3,25 @@ from datetime import datetime, timedelta
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
+from sqlalchemy.ext.mutable import MutableDict, MutableList
+from sqlalchemy import Column, Integer, JSON
+from sqlalchemy.types import JSON
+
+# Nest Mutable Dict for vote tracking
+class NestedMutableDict(MutableDict):
+    @classmethod
+    def coerce(cls, key, value):
+        if not isinstance(value, NestedMutableDict):
+            if isinstance(value, dict):
+                return NestedMutableDict({
+                    k: MutableList(v) if isinstance(v, list) else v
+                    for k, v in value.items()
+                })
+            return MutableDict.coerce(key, value)
+        else:
+            return value
+
+
 
 
 class Control(db.Model, UserMixin):
@@ -36,6 +55,11 @@ class Panel(db.Model):
     location = db.Column(db.String(100), nullable=False)
     primary_display = db.Column(db.String(100), nullable=False)  # e.g., 'panels/example_display.html'
     menu_items = db.Column(db.JSON)
+    current_player = db.Column(db.String, nullable=True)
+    player_last_interaction = db.Column(db.DateTime, nullable=True)
+    current_interactable = db.Column(db.String, nullable=True)
+    interactable_last_interaction = db.Column(db.DateTime, nullable=True)
+
 
 class QRObject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,7 +80,7 @@ class Player(db.Model):
 
     system_access = db.Column(db.JSON)  # list of system codes they can use
     player_menu = db.Column(db.JSON)    # list of menu keys
-    special_options = db.Column(db.JSON)  # list of ability/item/etc keys
+    permissions = db.Column(db.JSON, default=list)  # list of ability/item/etc keys
 
     resolve = db.Column(db.Integer)
     skill = db.Column(db.Integer)
@@ -69,6 +93,9 @@ class Player(db.Model):
     description = db.Column(db.Text)  # longer text about who they are
     condition = db.Column(db.JSON)    # list of condition codes
 
+    def has_permission(self, key):
+        return key in (self.permissions or [])
+
 
 class Interactable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -77,6 +104,19 @@ class Interactable(db.Model):
     type = db.Column(db.String(50), nullable=False)  # e.g., "tool", "item", "tag"
     data = db.Column(db.Text)  # Optional JSON or content payload
     requires_player = db.Column(db.Boolean, default=False)  # Whether it checks who accessed the panel
+    is_biological = db.Column(db.Boolean, default=False)
+    bioscan_result = db.Column(db.String)  # Or JSON/Text if complex
+    last_scanned = db.Column(db.DateTime)
+
+class ScannedBioSample(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    panel_id = db.Column(db.Integer, db.ForeignKey('panel.id'), nullable=False)
+    interactable_id = db.Column(db.Integer, db.ForeignKey('interactable.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    interactable = db.relationship('Interactable')
+
+
+
 
 class SpaceObject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -135,22 +175,47 @@ class GameState(db.Model):
         remaining = end_time - datetime.utcnow()
         return max(remaining, timedelta(0))  # Avoid negative values
 
-class CommTarget(db.Model):
+class LaserMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)  # e.g., "Earth Relay"
-    delay_seconds = db.Column(db.Integer, nullable=False)  # Total round-trip delay (sec)
-
-
-class TightbeamMessage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_code = db.Column(db.String(12), nullable=False)
-    target_id = db.Column(db.Integer, db.ForeignKey('comm_target.id'), nullable=False)
-    target = db.relationship("CommTarget")
-
-    file_path = db.Column(db.String(200), nullable=False)
-    sent_time = db.Column(db.DateTime, nullable=False)
-
-    # Optional response
-    response_path = db.Column(db.String(200), nullable=True)
+    panel_id = db.Column(db.Integer, db.ForeignKey('panel.id'))
+    sender_player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    message_target_id = db.Column(db.Integer, db.ForeignKey('message_target.id'))
+    audio_filename = db.Column(db.String(256))
+    sent_time = db.Column(db.DateTime, default=datetime.utcnow)
+    delivery_time = db.Column(db.DateTime)  # sent_time + delay
+    response_text = db.Column(db.Text, nullable=True)
     response_time = db.Column(db.DateTime, nullable=True)
+    target = db.relationship("MessageTarget", backref="laser_messages")
 
+class MessageTarget(db.Model):
+    __tablename__ = "message_target"  # Add this line
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    distance_in_light_minutes = db.Column(db.Float, nullable=True)
+
+class Poll(db.Model):
+    __tablename__ = 'polls'
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    creator = db.relationship("Player", backref="polls_created")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_open = db.Column(db.Boolean, default=True)
+    votes = db.Column(NestedMutableDict.as_mutable(JSON), default=dict)
+
+    def vote(self, option, voter_id):
+        """Register a vote from a player or NPC ID"""
+        if not self.votes:
+            self.votes = {}
+        if option not in self.votes:
+            self.votes[option] = []
+        if voter_id not in self.all_voters():
+            self.votes[option].append(voter_id)
+
+    def all_voters(self):
+        """Return a flat list of all voter IDs"""
+        return [voter for voters in self.votes.values() for voter in voters]
+
+    @property
+    def is_open(self):
+        return datetime.utcnow() - self.created_at < timedelta(minutes=5)

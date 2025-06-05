@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, abort, session, redirect, url_for, request, flash, current_app
 from flask_login import login_required
-from app.models import Panel, Player, Interactable, SpaceObject, TightbeamMessage, CommTarget, Control, ControlInvite, GameState
+from app.models import Panel, Player, Interactable, SpaceObject, LaserMessage, MessageTarget, Control, ControlInvite, GameState, ScannedBioSample
 from datetime import datetime, timedelta
 from .forms import PlayerForm, PanelForm, InteractableForm, SpaceObjectForm, ControlInviteForm, ControlRegistrationForm
 from app.email_utils import send_email
@@ -11,9 +11,28 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 import os
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timedelta
 import secrets
 import json
+from app.panel_handlers import handle_polling_display, handle_biolab_display
+from app.helpers import resolve_player, resolve_panel, resolve_interactable, build_menu_items, get_fictional_time, get_delay_to_target
+
+# Move this to helper? 
+def prune_inactive(panel):
+    cutoff = datetime.utcnow() - timedelta(minutes=1)
+
+    if panel.player_last_interaction and panel.player_last_interaction < cutoff:
+        panel.current_player = None
+        panel.player_last_interaction = None
+
+    if panel.interactable_last_interaction and panel.interactable_last_interaction < cutoff:
+        panel.current_interactable = None
+        panel.interactable_last_interaction = None
+
+    db.session.commit()
+
+
+
 
 main = Blueprint('main', __name__)
 
@@ -259,116 +278,137 @@ def control_edit_object(object_type, object_id):
     return render_template('control_edit_form.html', form=form, object_type=object_type)
 
 
-
+from app.forms import PollForm
+from app.models import Poll
 
 ### PANELS
-@main.route('/panel/<string:panel_code>/', defaults={'display': None, 'player_code': None, 'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/', defaults={'player_code': None, 'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/<string:player_code>/', defaults={'interactable': None})
-@main.route('/panel/<string:panel_code>/<string:display>/<string:player_code>/<string:interactable>/')
-def panel_view(panel_code, display, player_code, interactable):
-    panel = Panel.query.filter_by(code=panel_code.upper()).first_or_404()
+@main.route('/panel/<string:panel_code>/', methods=['GET', 'POST'], defaults={'display': None, 'player_code': None, 'interactable_code': None})
+@main.route('/panel/<string:panel_code>/display/<string:display>/', methods=['GET', 'POST'], defaults={'player_code': None, 'interactable_code': None})
+@main.route('/panel/<string:panel_code>/display/<string:display>/player/<string:player_code>/', methods=['GET', 'POST'], defaults={'interactable_code': None})
+@main.route('/panel/<string:panel_code>/display/<string:display>/player/<string:player_code>/interact/<string:interactable_code>/', methods=['GET', 'POST'])
+def panel_view(panel_code, display, player_code, interactable_code):
+    panel = resolve_panel(panel_code)
+    if not panel:
+        abort(404)
+    prune_inactive(panel)
 
-    player = None
-    if player_code:
-        player = Player.query.filter_by(code=player_code.upper()).first()
 
-    # Replace display with primary_display if missing
-    if not display:
-        display = panel.primary_display
+    display = display or panel.primary_display
+    player = resolve_player(player_code or request.args.get("player_code"))
+    interactable = resolve_interactable(interactable_code)
 
-    print("Loaded player:", player.name if player else "None")
+    if player:
+        panel.current_player = player.id
+        panel.player_last_interaction = datetime.utcnow()
 
-    interactable_obj = None
     if interactable:
-        interactable_obj = Interactable.query.filter_by(code=interactable.upper()).first()
+        panel.current_interactable = interactable.id
+        panel.interactable_last_interaction = datetime.utcnow()
+
+    DISPLAY_HANDLERS = {
+        "polling": handle_polling_display,
+        "biolab": handle_biolab_display,
+        # Add more display handlers here as needed
+    }
+
+    handler = DISPLAY_HANDLERS.get(display.lower())
+    extra_context = {}
+
+    ### Debug
+    print("Display:", display)
+    print("Handler:", handler)
+    ### End debug
+    if handler:
+        handler_result = handler(player=player, panel=panel, display=display, interactable=interactable)
+        if isinstance(handler_result, dict):
+            if 'redirect' in handler_result:
+                return redirect(handler_result['redirect'])
+            extra_context.update(handler_result)
+
+    if display.lower() == "laser_comms":
+        extra_context["message_targets"] = MessageTarget.query.all()
+
+    #Debugging 
+    print("Request method:", request.method)
+    #End debugging
+
+    #Bioscan, but should this be a helper function?
+    if interactable and interactable.is_biological:
+        print(f"Biological interactable scanned: {interactable.label} (ID: {interactable.id})")
+        print(f"Panel display: {display}")
+        
+        if display == "Biolab":
+            existing = ScannedBioSample.query.filter_by(
+                panel_id=panel.id,
+                interactable_id=interactable.id
+            ).first()
+            
+            if not existing:
+                print("No existing scan found — creating new.")
+                db.session.add(ScannedBioSample(panel_id=panel.id, interactable_id=interactable.id))
+                db.session.commit()
+            else:
+                print("Sample already scanned.")
+
+    if request.args.get("logout") == "1":
+        panel.current_player = None
+        panel.player_last_interaction = None
+        panel.current_interactable = None
+        panel.interactable_last_interaction = None
+        db.session.commit()
+        return redirect(url_for("main.panel_view", panel_code=panel.code))
 
 
-    menu_data = panel.menu_items or []
-    if player and isinstance(player.player_menu, list):
-        menu_data += player.player_menu
+#############3
+    elif request.method == "POST" and request.form.get("form_type") == "send_laser":
+        target_name = request.form.get("target_name")
+        target = MessageTarget.query.filter_by(name=target_name).first()
 
-    return render_template('panel_base.html',
-                           panel=panel,
-                           display=display,
-                           player=player,#player_obj,
-                           interactable=interactable_obj,
-                           menu_items = [(item['key'], item['label']) for item in menu_data] )
+        if not target:
+            flash("Invalid target selected.", "error")
+            return redirect(request.path)
+
+        delay_seconds = get_delay_to_target(target)
+
+        audio_base64 = request.form.get("audio_data")
+        audio_blob = base64.b64decode(audio_base64)
+
+        # Save audio file
+        filename = f"{uuid.uuid4().hex}.webm"
+        from flask import current_app
+        filepath = os.path.join(current_app.config['AUDIO_UPLOAD_FOLDER'], filename)
+        with open(filepath, "wb") as f:
+            f.write(audio_blob)
+
+        new_message = LaserMessage(
+            panel_id=panel.id,
+            sender_player_id=player.id if player else None,
+            message_target_id=target.id,
+            audio_filename=filename,
+            delivery_time=datetime.utcnow() + timedelta(seconds=delay_seconds)
+        )
+
+        db.session.add(new_message)
+        db.session.commit()
+        flash(f"Message sent to {target.name}. ETA: {round(delay_seconds / 60, 2)} minutes. ERT: {round(2*delay_seconds / 60, 2)} minutes.", "success")
+        return redirect(request.path)
+    
+
+###################
+
+    return render_template(
+        "panel_base.html",
+        panel=panel,
+        player=player,
+        interactable=interactable,
+        fictional_time=get_fictional_time(),
+        display=display,
+        menu_items=build_menu_items(panel, player),
+        timedelta=timedelta,
+        now=datetime.utcnow(),
+        **extra_context
+    )
+
             
 
-
-
-### Obsolete
-@main.route('/access/<player_code>/<panel_code>', methods=["POST"])
-def grant_access(player_code, panel_code):
-    player = Player.query.filter_by(code=player_code.upper()).first()
-    panel = Panel.query.filter_by(code=panel_code.upper()).first()
-
-    if not player or not panel:
-        abort(404)
-
-    session[f"access_{panel_code.upper()}"] = player.name
-    session[f"access_time_{panel_code.upper()}"] = datetime.utcnow().isoformat()
-    return ('', 204)
-
-from app.models import Interactable
-
-
-
-@main.route('/overlay/<panel_code>')
-def overlay(panel_code):
-    from app.models import SpaceObject, Panel
-    panel = Panel.query.filter_by(code=panel_code.upper()).first_or_404()
-    objects = SpaceObject.query.all()
-    obj_data = [obj.to_dict() for obj in objects]  # ✅ convert to dicts
-    return render_template('overlay.html', panel=panel, objects=obj_data)
-
-
-@main.route('/send_message/<player_code>', methods=['GET', 'POST'])
-def send_message(player_code):
-    import base64, os
-    from datetime import datetime
-    from app.models import Player, CommTarget, TightbeamMessage
-
-    player = Player.query.filter_by(code=player_code.upper()).first_or_404()
-    targets = CommTarget.query.all()
-
-    if request.method == 'POST':
-        target_id = request.form.get('target_id')
-        audio_data_base64 = request.form.get('audio_data')
-
-        if not target_id or not audio_data_base64:
-            flash('Missing target or audio data.', 'danger')
-            return redirect(request.url)
-
-        # Decode and save audio file
-        audio_bytes = base64.b64decode(audio_data_base64)
-        filename = f"{player.code}_{datetime.utcnow().isoformat().replace(':', '-')}.webm"
-        save_dir = os.path.join(current_app.root_path, 'static', 'audio_messages')
-        os.makedirs(save_dir, exist_ok=True)
-        filepath = os.path.join(save_dir, filename)
-
-        # Decode and save the file
-        try:
-            audio_bytes = base64.b64decode(audio_data_base64)
-            with open(filepath, 'wb') as f:
-                f.write(audio_bytes)
-        except Exception as e:
-            flash(f"Error saving file: {str(e)}", "danger")
-            return redirect(request.url)
-
-        # Create DB record
-        message = TightbeamMessage(
-            player_code=player.code,
-            target_id=target_id,
-            file_path=filename,
-            sent_time=datetime.utcnow()
-        )
-        db.session.add(message)
-        db.session.commit()
-
-        flash("Message sent successfully!", "success")
-        return redirect(url_for('main.send_message', player_code=player_code))
-
-    return render_template('send_message.html', player=player, targets=targets)
 

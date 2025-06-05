@@ -1,5 +1,12 @@
-from app.models import GameState
+from .models import GameState
 from datetime import datetime, timezone
+from flask import current_app
+from jinja2 import pass_context
+
+
+@pass_context
+def has_permission(context, player, perm):
+    return player and perm in (player.permissions or [])
 
 def base_context():
     game_state = GameState.query.first()
@@ -8,5 +15,7 @@ def base_context():
     return {
         "game_state": game_state,
         "now": now,
-        "fictional_time": fictional_time
+        "fictional_time": fictional_time,
+        "has_permission": has_permission
     }
+

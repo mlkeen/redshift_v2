@@ -91,6 +91,7 @@ body {
     display: flex;
     flex: 1;
     overflow: hidden;
+    padding-top: 1rem;
 }
 
 .main-display {
@@ -103,7 +104,8 @@ body {
 
 .menu {
     flex: 1;
-    padding: 1rem;
+    padding: 2rem;
+    padding-top: 0;
     background-color: var(--bg-color);
     color: var(--fg-color);
     overflow: hidden; 
@@ -249,6 +251,7 @@ img, canvas, input[type="text"] {
   text-transform: uppercase;
   font-family: var(--font-heading);
   letter-spacing: 0.5rem;
+  margin-top: 0;
 }
 
 .entry {
@@ -667,4 +670,33 @@ img, canvas, input[type="text"] {
 .alert-btn {
   background-color: var(--text-alert);
   color: var(--bg-color);
+}
+
+
+
+/* === Status Formatting === */
+.greeble-matrix {
+  display: grid;
+  grid-template-rows: repeat(32, 1fr);
+  gap: 4px;
+  margin-top: 1rem;
+}
+
+.greeble-row {
+  display: grid;
+  grid-template-columns: repeat(64, 1fr);
+  gap: 4px;
+}
+
+.greeble-square {
+  width: 6px;
+  height: 6px;
+  background-color: var(--bg-color);
+  border-radius: 2px;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100%   { background-color: var(--bg-color) }
+  50%        { background-color: var(--accent-color) }
 }

@@ -1,51 +1,89 @@
 <div class="panel-section">
-  <h2 class="panel-heading">Communications Console</h2>
-
+  <h3>Long-Distance Tightbeam</h3>
+  <p>Laser communication to distant faction relays. Subject to light-speed delay.</p>
   {% if player %}
-    <div class="comm-section">
-      <h3>📣 Stationwide Alerts</h3>
-      <p>Issue a general broadcast across all station systems.</p>
-      <button class="btn">Send Red Alert</button>
-      <button class="btn">Send Yellow Alert</button>
-      <button class="btn">Clear Alert</button>
-    </div>
-
-    <hr>
-
-    <div class="comm-section">
-      <h3>📡 Local Ship Communications</h3>
-      <p>Transmit coded audio messages to ships within comms range.</p>
-      <input type="text" placeholder="Enter ship call sign..." />
-      <textarea placeholder="Record or type your message here..." rows="3"></textarea>
-      <button class="btn">Send Local Audio</button>
-    </div>
-
-    <hr>
-
-    <div class="comm-section">
-      <h3>🔦 Long-Distance Tightbeam</h3>
-      <p>Laser communication to distant faction relays. Subject to light-speed delay.</p>
-      <select>
-        <option disabled selected>Select target faction...</option>
-        <option>Pacific Federation Relay</option>
-        <option>Jovian Compact Post</option>
-        <option>Trojan Miner Holdfast</option>
+    <form method="POST">
+      <input type="hidden" name="form_type" value="send_laser">
+      <label for="target_name">Target:</label>
+      <select name="target_name" required>
+        {% for target in message_targets %}
+          <option value="{{ target.name }}">{{ target.name }} ({{ target.distance_in_light_minutes }} min)</option>
+        {% endfor %}
       </select>
-      <textarea placeholder="Audio message content (max 30s)..." rows="3"></textarea>
-      <button class="btn">Send Tightbeam</button>
-    </div>
+      <button type="submit">Send Laser Message</button>
+    </form>
+{% endif %}
 
-    <hr>
 
-    <div class="comm-section">
-      <h3>📥 Incoming Messages</h3>
-      <p>Recent decoded transmissions:</p>
-      <ul class="incoming-messages">
-        <li><strong>[15:03]</strong> — Encrypted ping received from Excelsior</li>
-        <li><strong>[14:55]</strong> — “Status inquiry: Redshift Station, confirm integrity.”</li>
-      </ul>
-    </div>
-  {% else %}
-    <p class="inactive-message">🔒 No active user. Please scan a valid player ID to access communication systems.</p>
-  {% endif %}
+
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="form_type" value="send_laser">
+  <select name="target_name">
+    {% for target in message_targets %}
+      <option value="{{ target.name }}">{{ target.name }}</option>
+    {% endfor %}
+  </select>
+
+  <div id="recorder">
+    <button type="button" id="startBtn">Start Recording</button>
+    <button type="button" id="stopBtn" disabled>Stop</button>
+    <audio id="audioPlayback" controls></audio>
+    <input type="hidden" name="audio_data" id="audioData">
+  </div>
+
+  <button type="submit">Send</button>
+</form>
+
+<script>
+let mediaRecorder;
+let chunks = [];
+let maxDuration = 30 * 1000;
+
+document.getElementById("startBtn").onclick = async function() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+
+  chunks = [];
+  mediaRecorder.ondataavailable = e => chunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "audio/webm" });
+    const audioURL = URL.createObjectURL(blob);
+    document.getElementById("audioPlayback").src = audioURL;
+
+    blobToBase64(blob).then(base64 => {
+      document.getElementById("audioData").value = base64;
+    });
+  };
+
+  mediaRecorder.start();
+  document.getElementById("stopBtn").disabled = false;
+  document.getElementById("startBtn").disabled = true;
+
+  setTimeout(() => {
+    if (mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      document.getElementById("stopBtn").disabled = true;
+    }
+  }, maxDuration);
+};
+
+document.getElementById("stopBtn").onclick = () => {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    document.getElementById("stopBtn").disabled = true;
+  }
+};
+
+function blobToBase64(blob) {
+  return new Promise((resolve, _) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+</script>
+
+
+
+
 </div>

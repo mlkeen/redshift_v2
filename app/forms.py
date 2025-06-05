@@ -1,9 +1,10 @@
 # app/forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, FloatField, SubmitField, SelectField, PasswordField
+from wtforms import StringField, FloatField, SubmitField, SelectField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Regexp
 from .models import Player, Panel, Interactable, SpaceObject
+
 
 class ControlInviteForm(FlaskForm):
     email = StringField('Recipient Email', validators=[DataRequired(), Email()])
@@ -72,3 +73,8 @@ class SpaceObjectForm(FlaskForm):
     transponder = StringField('Transponder')
     submit = SubmitField('Save')
     model_class = SpaceObject
+
+
+class PollForm(FlaskForm):
+    question = StringField('Question', validators=[DataRequired()])
+    options = StringField('Options (comma-separated)', validators=[DataRequired()])
