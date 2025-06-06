@@ -2,51 +2,72 @@
   <h2>Power Distribution</h2>
   <p>View and reroute power between station systems. Overloads and imbalances may result in system failure.</p>
 
-  <table class="power-table">
-    <thead>
-      <tr>
-        <th>System</th>
-        <th>Current Draw</th>
-        <th>Allocated</th>
-        <th>Adjust</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Life Support</td>
-        <td>120 kW</td>
-        <td><input type="range" min="0" max="200" value="120" class="power-slider"></td>
-        <td><button class="btn btn-sm">Set</button></td>
-      </tr>
-      <tr>
-        <td>Comms Array</td>
-        <td>80 kW</td>
-        <td><input type="range" min="0" max="150" value="80" class="power-slider"></td>
-        <td><button class="btn btn-sm">Set</button></td>
-      </tr>
-      <tr>
-        <td>Hydroponics</td>
-        <td>60 kW</td>
-        <td><input type="range" min="0" max="100" value="60" class="power-slider"></td>
-        <td><button class="btn btn-sm">Set</button></td>
-      </tr>
-      <tr>
-        <td>KISS Interface</td>
-        <td>200 kW</td>
-        <td><input type="range" min="0" max="300" value="200" class="power-slider"></td>
-        <td><button class="btn btn-sm">Set</button></td>
-      </tr>
-      <tr>
-        <td>Engineering Bay</td>
-        <td>100 kW</td>
-        <td><input type="range" min="0" max="200" value="100" class="power-slider"></td>
-        <td><button class="btn btn-sm">Set</button></td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="total-power-status">
-    <strong>Total Power Capacity:</strong> 800 kW<br>
-    <strong>Remaining:</strong> 240 kW
-  </div>
+<div class="power-summary">
+  <p><strong>Total Generation:</strong> {{ total_production }} kW</p>
+  <p><strong>Total Consumption:</strong> {{ total_draw }} kW</p>
 </div>
+
+  <h3>Power Sources</h3>
+  <ul>
+    {% for source in power_sources %}
+      <li>{{ source.name }} – {{ source.status }} – {{ source.current_output }} / {{ source.max_output }}</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Power Consumers</h3>
+
+    {% set available = total_production %}
+    {% for consumer in power_consumers %}
+      {% set can_power = not consumer.is_disabled and available >= consumer.power_draw %}
+      {% if can_power %}
+        {% set available = available - consumer.power_draw %}
+      {% endif %}
+
+      <div class="consumer 
+                  {% if consumer.is_disabled %}disabled
+                  {% elif not can_power and consumer.priority == 'Low' %}cutoff
+                  {% elif not can_power %}warning
+                  {% endif %}">
+        <strong>{{ consumer.name }}</strong> — {{ consumer.power_draw }} kW
+        <span>[{{ consumer.priority }}]</span>
+        {% if not consumer.is_disabled %}
+          {% if not can_power %}
+            <span class="notice">⚠ Not Powered</span>
+          {% endif %}
+        {% endif %}
+        <button onclick="toggleConsumer({{ consumer.id }}, {{ consumer.is_disabled | tojson }})">
+          {{ 'Enable' if consumer.is_disabled else 'Disable' }}
+        </button>
+      </div>
+    {% endfor %}
+
+</div>
+
+<script>
+function toggleConsumer(id, isDisabled) {
+  const newState = !isDisabled;
+
+  fetch("/api/power/toggle_consumer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      consumer_id: id,
+      is_disabled: newState
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();  // Simple: reload UI
+    } else {
+      alert("Error: " + data.error);
+    }
+  })
+  .catch(err => {
+    console.error("Request failed:", err);
+    alert("An error occurred while toggling the consumer.");
+  });
+}
+</script>

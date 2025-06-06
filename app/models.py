@@ -116,8 +116,6 @@ class ScannedBioSample(db.Model):
     interactable = db.relationship('Interactable')
 
 
-
-
 class SpaceObject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String(50), nullable=False)  # e.g., "asteroid", "ship", "probe", "unknown"
@@ -166,6 +164,8 @@ class GameState(db.Model):
     phase_name = db.Column(db.String(64), default="briefing")
     phase_start_time = db.Column(db.DateTime, nullable=True)
     phase_duration_minutes = db.Column(db.Integer, default=40)
+    thermal_fail_time = db.Column(db.DateTime, nullable=True)
+    magnetic_fail_time = db.Column(db.DateTime, nullable=True)
 
     def time_remaining(self):
         if not self.phase_start_time or not self.phase_duration_minutes:
@@ -178,7 +178,9 @@ class GameState(db.Model):
 class LaserMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     panel_id = db.Column(db.Integer, db.ForeignKey('panel.id'))
+    panel = db.relationship('Panel', backref='laser_messages')
     sender_player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    player = db.relationship('Player', backref='laser_messages')
     message_target_id = db.Column(db.Integer, db.ForeignKey('message_target.id'))
     audio_filename = db.Column(db.String(256))
     sent_time = db.Column(db.DateTime, default=datetime.utcnow)
@@ -219,3 +221,42 @@ class Poll(db.Model):
     @property
     def is_open(self):
         return datetime.utcnow() - self.created_at < timedelta(minutes=5)
+
+
+class PowerSource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, default='Offline')  # Online, Offline, Critical, etc.
+    current_output = db.Column(db.Float, default=0.0)
+    max_output = db.Column(db.Float, default=0.0)
+    cooldown = db.Column(db.Boolean, default=False)
+    source_type = db.Column(db.String, nullable=False)  # 'fusion', 'solar', etc.
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "current_output": self.current_output,
+            "max_output": self.max_output,
+            "cooldown": self.cooldown,
+            "source_type": self.source_type,
+        }
+
+class PowerConsumer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    priority = db.Column(db.String, default='Medium')  # High, Medium, Low
+    power_draw = db.Column(db.Float, default=0.0)
+    is_disabled = db.Column(db.Boolean, default=False)
+    consumer_type = db.Column(db.String, nullable=True)  # e.g., 'life_support'
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "priority": self.priority,
+            "power_draw": self.power_draw,
+            "is_disabled": self.is_disabled,
+            "consumer_type": self.consumer_type,
+        }

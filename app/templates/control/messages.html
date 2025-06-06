@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Laser Messages</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>From Player</th>
+      <th>Target</th>
+      <th>Sent Time</th>
+      <th>Audio</th>
+      <th>Response</th>
+      <th>Time to Arrival</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for msg in messages %}
+    <tr>
+      <td>{{ msg.player.name }}</td>
+      <td>{{ msg.target.name }}</td>
+      <td>{{ msg.sent_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+      <td>
+        {% if msg.audio_filename %}
+          <audio controls>
+            <source src="{{ url_for('static', filename='audio/' + msg.audio_filename) }}" type="audio/wav">
+            Your browser does not support the audio element.
+          </audio>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td>
+        {% if msg.response_text %}
+          {{ msg.response_text }}
+        {% else %}
+          <form method="POST" action="{{ url_for('main.respond_message', msg_id=msg.id) }}">
+            <input type="text" name="response_text" placeholder="Enter response..." required>
+            <button type="submit">Send</button>
+          </form>
+        {% endif %}
+      </td>
+      <td>{{ msg.time_remaining_str }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+{% endblock %}
+
+
+

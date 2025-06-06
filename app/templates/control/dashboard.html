@@ -3,44 +3,10 @@
 <h1>🧭 Redshift Control Dashboard</h1>
 
 
-<nav>
-  <a href="#messages">Messages</a> |
-  <a href="#edit">Edit Data</a> |
-  <a href="#gamestate">Game State</a>
-</nav>
+<form action="{{ url_for('main.trigger_power_blackout') }}" method="post">
+  <button type="submit" class="btn btn-danger">Trigger Power Blackout</button>
+</form>
 
-<hr>
 
-<h2 id="messages">📡 Tightbeam Messages</h2>
-<table border="1" cellpadding="8">
-  <tr>
-    <th>From</th><th>To</th><th>Sent</th><th>Message</th><th>Reply</th><th>Status</th>
-  </tr>
-  {% for msg in messages %}
-  <tr>
-    <td>{{ msg.player_code }}</td>
-    <td>{{ msg.target.name }}</td>
-    <td>{{ msg.sent_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-    <td><audio controls src="{{ url_for('static', filename=msg.file_path) }}"></audio></td>
-    <td>
-      {% if msg.response_path %}
-        <audio controls src="{{ url_for('static', filename=msg.response_path) }}"></audio>
-      {% else %}
-        <form method="post" action="{{ url_for('main.respond_to_message', message_id=msg.id) }}" enctype="multipart/form-data">
-          <input type="file" name="reply_file" accept="audio/*" required>
-          <button type="submit">Send Reply</button>
-        </form>
-      {% endif %}
-    </td>
-    <td>
-      {% if msg.response_time %}
-        Responded {{ msg.response_time.strftime('%H:%M:%S') }}
-      {% else %}
-        <em>Pending</em>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
 
 {% endblock %}

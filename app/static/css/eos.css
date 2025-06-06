@@ -398,6 +398,13 @@ img, canvas, input[type="text"] {
 }
 
 /* === Power Distribution Formatting === */
+.consumer.disabled { opacity: 0.5; }
+.consumer.cutoff { background-color: var(--alert-color); opacity: 0.1 }
+.consumer.warning { background-color:var(--warning-color); opacity: 0.1; }
+.consumer .notice { color: var(--alert-color); font-weight: bold; margin-left: 10px; }
+
+
+
 .power-table {
   width: 100%;
   border-collapse: collapse;

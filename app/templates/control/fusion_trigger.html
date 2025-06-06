@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Trigger Fusion Drive Failures</h2>
+
+    <form method="POST">
+    <label>Failure Type:</label>
+    <select name="fail_type">
+        <option value="thermal">Thermal Regulation</option>
+        <option value="magnetic">Magnetic Containment</option>
+    </select>
+
+    <label>Countdown (seconds):</label>
+    <input type="number" name="seconds" min="5" step="5" value="30">
+
+    <button type="submit">Trigger Failure</button>
+    </form>
+
+    <h3>Current Active Failures</h3>
+    <ul>
+    <li>Thermal: {{ game_state.thermal_fail_time if game_state.thermal_fail_time else "None" }}</li>
+    <li>Magnetic: {{ game_state.magnetic_fail_time if game_state.magnetic_fail_time else "None" }}</li>
+    </ul>
+
+{% endblock %}

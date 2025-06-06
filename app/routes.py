@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, abort, session, redirect, url_for, request, flash, current_app
+from flask import Blueprint, render_template, abort, session, redirect, url_for, request, flash, current_app, jsonify
 from flask_login import login_required
-from app.models import Panel, Player, Interactable, SpaceObject, LaserMessage, MessageTarget, Control, ControlInvite, GameState, ScannedBioSample
+from app.models import Panel, Player, Interactable, SpaceObject, LaserMessage, MessageTarget, Control, ControlInvite, GameState, ScannedBioSample, PowerSource, PowerConsumer
 from datetime import datetime, timedelta
 from .forms import PlayerForm, PanelForm, InteractableForm, SpaceObjectForm, ControlInviteForm, ControlRegistrationForm
 from app.email_utils import send_email
@@ -16,6 +16,9 @@ import secrets
 import json
 from app.panel_handlers import handle_polling_display, handle_biolab_display
 from app.helpers import resolve_player, resolve_panel, resolve_interactable, build_menu_items, get_fictional_time, get_delay_to_target
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
+ 
 
 # Move this to helper? 
 def prune_inactive(panel):
@@ -30,6 +33,28 @@ def prune_inactive(panel):
         panel.interactable_last_interaction = None
 
     db.session.commit()
+
+def humanize_timedelta(td):
+    total_seconds = int(td.total_seconds())
+    if total_seconds < 60:
+        return f"{total_seconds} seconds"
+    elif total_seconds < 3600:
+        minutes = total_seconds // 60
+        return f"{minutes} minute{'s' if minutes != 1 else ''}"
+    else:
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        parts = []
+        if hours:
+            parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+        if minutes:
+            parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+        return " ".join(parts)
+
+
+
+
+
 
 
 
@@ -139,9 +164,8 @@ def register_control(token):
 @login_required
 def control_dashboard():
     game_state = GameState.query.first()
-    messages = TightbeamMessage.query.order_by(TightbeamMessage.sent_time.desc()).all()
     time_remaining = game_state.time_remaining() if game_state else None
-    return render_template('control/dashboard.html', messages=messages, game_state=game_state, time_remaining=time_remaining)
+    return render_template('control/dashboard.html',  game_state=game_state, time_remaining=time_remaining)
 
 
 @main.route('/control/start_phase', methods=['GET', 'POST'])
@@ -167,37 +191,47 @@ def start_phase():
     return render_template('control/start_phase.html')
 
 
-
-
-@main.route('/control/messages')
+@main.route("/control/messages")
 @login_required
-def view_messages():
-    from app.models import TightbeamMessage
-    messages = TightbeamMessage.query.order_by(TightbeamMessage.sent_time.desc()).all()
-    return render_template('control_messages.html', messages=messages)
+def control_messages():
+    messages = LaserMessage.query.options(
+        joinedload(LaserMessage.panel),
+        joinedload(LaserMessage.target)
+    ).order_by(LaserMessage.sent_time.desc()).all()
 
-@main.route('/control/respond/<int:message_id>', methods=["POST"])
+    now = datetime.utcnow()
+    for msg in messages:
+        if msg.response_time and msg.response_time > now:
+            td = msg.response_time - now
+            msg.time_remaining_str = humanize_timedelta(td)
+        elif msg.response_time:
+            msg.time_remaining_str = "Delivered"
+        else:
+            msg.time_remaining_str = "N/A"
+
+    return render_template("control/messages.html", messages=messages)
+
+
+
+@main.route("/control/messages/respond/<int:msg_id>", methods=["POST"])
 @login_required
-def respond_to_message(message_id):
-    from app.models import TightbeamMessage
-    message = TightbeamMessage.query.get_or_404(message_id)
-    file = request.files.get("reply_file")
-
-    if not file:
-        flash("No file uploaded.")
-        return redirect(url_for("main.control_dashboard"))
-
-    filename = f"response_{message.id}_{int(datetime.utcnow().timestamp())}.webm"
-    save_path = os.path.join("app", "static", "messages", filename)
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    file.save(save_path)
-
-    message.response_path = os.path.join("messages", filename)
-    message.response_time = datetime.utcnow()
+def respond_message(msg_id):
+    msg = LaserMessage.query.get_or_404(msg_id)
+    msg.response_text = request.form.get("response_text")
+    msg.response_time = datetime.utcnow()
     db.session.commit()
+    return redirect(url_for('main.control_messages'))
 
-    flash("Reply sent.")
-    return redirect(url_for("main.control_dashboard"))
+@main.route("/control/power/blackout", methods=["POST"])
+@login_required
+def trigger_power_blackout():
+    consumers = PowerConsumer.query.all()
+    for c in consumers:
+        if c.priority != 'High':
+            c.is_disabled = True
+    db.session.commit()
+    flash("Blackout triggered: All non-high-priority consumers disabled.", "warning")
+    return redirect(url_for('main.control_dashboard'))
 
 
 ######
@@ -217,6 +251,27 @@ def control_edit_list(object_type):
 
     items = model.query.all()
     return render_template('control_edit_list.html', object_type=object_type, items=items)
+
+@main.route("/control/fusion_trigger", methods=["GET", "POST"])
+@login_required
+def fusion_trigger_panel():
+    game_state = GameState.query.first()
+    if request.method == "POST":
+        fail_type = request.form.get("fail_type")
+        seconds = int(request.form.get("seconds", 0))
+        fail_time = datetime.utcnow() + timedelta(seconds=seconds)
+
+        if fail_type == "thermal":
+            game_state.thermal_fail_time = fail_time
+        elif fail_type == "magnetic":
+            game_state.magnetic_fail_time = fail_time
+
+        db.session.commit()
+        flash(f"{fail_type.capitalize()} failure triggered for {seconds} seconds from now.", "success")
+        return redirect(url_for("main.fusion_trigger_panel"))
+
+    return render_template("control/fusion_trigger.html", game_state=game_state)
+
 
 
 @main.route('/control/edit/<string:object_type>/new', methods=['GET', 'POST'])
@@ -359,6 +414,41 @@ def panel_view(panel_code, display, player_code, interactable_code):
         return redirect(url_for("main.panel_view", panel_code=panel.code))
 
 
+    if display == "object_vector_interface":
+        nearby_objects = SpaceObject.query.filter(
+            func.sqrt(
+                SpaceObject.x * SpaceObject.x +
+                SpaceObject.y * SpaceObject.y +
+                SpaceObject.z * SpaceObject.z
+            ) <= 18_000_000
+        ).all()
+        print(f"Loaded {len(nearby_objects)} nearby objects")
+        extra_context["space_objects"] = [obj.to_dict() for obj in nearby_objects]
+
+    if display.lower() == "power_distribution":
+        sources = PowerSource.query.all()
+        consumers = PowerConsumer.query.all()
+
+        # Only count power draw from enabled systems
+        active_consumers = [c for c in consumers if not c.is_disabled]
+        total_production = sum(supply.current_output for supply in sources if supply.status == "Online")
+        total_draw = sum(consumer.power_draw for consumer in active_consumers)
+
+        extra_context.update({
+            "power_sources": [s.to_dict() for s in sources],
+            "power_consumers": [c.to_dict() for c in consumers],
+            "total_production": total_production,
+            "total_draw": total_draw,
+        })
+
+    if display.lower() == "engineering":
+        fusion_drive = PowerSource.query.filter_by(source_type="fusion").first()
+        solar_arrays = PowerSource.query.filter_by(source_type="solar").all()
+
+        extra_context["fusion_drive"] = fusion_drive.to_dict() if fusion_drive else None
+        extra_context["solar_arrays"] = [s.to_dict() for s in solar_arrays]
+
+
 #############3
     elif request.method == "POST" and request.form.get("form_type") == "send_laser":
         target_name = request.form.get("target_name")
@@ -385,7 +475,8 @@ def panel_view(panel_code, display, player_code, interactable_code):
             sender_player_id=player.id if player else None,
             message_target_id=target.id,
             audio_filename=filename,
-            delivery_time=datetime.utcnow() + timedelta(seconds=delay_seconds)
+            delivery_time=datetime.utcnow() + timedelta(seconds=delay_seconds),
+            response_time=datetime.utcnow() + timedelta(seconds=2*delay_seconds+30)
         )
 
         db.session.add(new_message)
@@ -393,6 +484,16 @@ def panel_view(panel_code, display, player_code, interactable_code):
         flash(f"Message sent to {target.name}. ETA: {round(delay_seconds / 60, 2)} minutes. ERT: {round(2*delay_seconds / 60, 2)} minutes.", "success")
         return redirect(request.path)
     
+    # Get player messages from this panel
+    player_messages = []
+    if player:
+        player_messages = LaserMessage.query.filter_by(
+            sender_player_id=player.id,
+            panel_id=panel.id
+        ).order_by(LaserMessage.sent_time.desc()).all()
+
+
+
 
 ###################
 
@@ -406,9 +507,88 @@ def panel_view(panel_code, display, player_code, interactable_code):
         menu_items=build_menu_items(panel, player),
         timedelta=timedelta,
         now=datetime.utcnow(),
+        player_messages=player_messages,
         **extra_context
     )
 
             
 
+@main.route("/api/nearby_objects")
+def api_nearby_objects():
+    all_objects = SpaceObject.query.all()
+    nearby = [
+        obj.to_dict()
+        for obj in all_objects
+        if (obj.x**2 + obj.y**2 + obj.z**2) ** 0.5 <= 18_000_000
+    ]
+    return jsonify(nearby)
+
+@main.route('/api/power_status')
+def api_power_status():
+    sources = PowerSource.query.all()
+    consumers = PowerConsumer.query.all()
+
+    return jsonify({
+        "sources": [s.to_dict() for s in sources],
+        "consumers": [c.to_dict() for c in consumers]
+    })
+
+#Remove?
+@main.route("/api/toggle_consumer/<int:consumer_id>", methods=["POST"])
+def toggle_consumer(consumer_id):
+    consumer = PowerConsumer.query.get_or_404(consumer_id)
+    consumer.is_disabled = not consumer.is_disabled
+    db.session.commit()
+    return jsonify({"status": "success", "is_disabled": consumer.is_disabled})
+
+@main.route("/api/power/toggle_consumer", methods=["POST"])
+def toggle_power_consumer():
+    data = request.get_json()
+    consumer_id = data.get("consumer_id")
+    new_state = data.get("is_disabled")
+
+    if consumer_id is None or new_state is None:
+        return jsonify({"success": False, "error": "Missing parameters"}), 400
+
+    consumer = PowerConsumer.query.get(consumer_id)
+    if not consumer:
+        return jsonify({"success": False, "error": "Consumer not found"}), 404
+
+    consumer.is_disabled = new_state
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+@main.route("/api/fusion_output", methods=["POST"])
+def set_fusion_output():
+    data = request.get_json()
+    fusion = PowerSource.query.filter_by(source_type="fusion").first()
+    if not fusion or fusion.cooldown:
+        return jsonify({"error": "Not adjustable"}), 403
+
+    fusion.current_output = min(fusion.max_output, max(0, float(data["new_output"])))
+    db.session.commit()
+    return jsonify({"status": "ok"})
+
+@main.route("/api/fusion_shutdown", methods=["POST"])
+def shutdown_fusion():
+    fusion = PowerSource.query.filter_by(source_type="fusion").first()
+    if not fusion:
+        return jsonify({"error": "Not found"}), 404
+
+    fusion.status = "Offline"
+    fusion.current_output = 0
+    db.session.commit()
+    return jsonify({"status": "shutdown"})
+
+@main.route("/api/fusion_failures")
+def fusion_failures():
+    state = GameState.query.first()
+    now = datetime.utcnow()
+    thermal_remaining = max(0, int((state.thermal_fail_time - now).total_seconds())) if state and state.thermal_fail_time else None
+    magnetic_remaining = max(0, int((state.magnetic_fail_time - now).total_seconds())) if state and state.magnetic_fail_time else None
+    return jsonify({
+        "thermal_seconds": thermal_remaining,
+        "magnetic_seconds": magnetic_remaining
+    })
 

@@ -1,28 +1,72 @@
 <div class="panel-section">
-  <h2 class="panel-heading">Engineering Status</h2>
+  <h2>Engineering Console</h2>
 
-  <p>Core Systems: <strong>Stable</strong></p>
+  <div class="card">
+    <h3>Primary Fusion Drive</h3>
+    <p>Status: <strong>{{ fusion_drive.status }}</strong></p>
+    <p>Output: <strong>{{ fusion_drive.current_output }} / {{ fusion_drive.max_output }} MW</strong></p>
 
-  <div class="panel-data-block">
-    <p><strong>Reactor Output:</strong> 87% Nominal</p>
-    <p><strong>Power Grid Load:</strong> 68%</p>
-    <p><strong>Auxiliary Systems:</strong> Synced</p>
-    <p><strong>Coolant Flow:</strong> Green Zone</p>
+    <div>
+      <label for="outputSlider">Adjust Output</label>
+      <input type="range" id="outputSlider" min="0" max="{{ fusion_drive.max_output }}" value="{{ fusion_drive.current_output }}" step="1">
+      <button onclick="submitOutput()">Set Output</button>
+    </div>
+
+    <div id="thermalWarning" class="warning-box hidden">⚠️ Thermal Regulation Failing in <span id="thermalCountdown"></span> seconds</div>
+    <div id="magneticWarning" class="warning-box hidden">⚠️ Magnetic Containment Failing in <span id="magneticCountdown"></span> seconds</div>
+
+    <button onclick="shutdownFusion()">Emergency Shutdown</button>
   </div>
 
-  <hr>
-
-  <div class="panel-controls">
-    <h3>Control Interface</h3>
-    <button class="btn">Open Power Map</button>
-    <button class="btn">Reroute Power</button>
-    <button class="btn">Run Diagnostics</button>
-    <button class="btn">Shut Down Non-Essentials</button>
+  <div class="card">
+    <h3>Solar Array Status</h3>
+    <ul>
+      {% for array in solar_arrays %}
+        <li>{{ array.name }} — Status: {{ array.status }} — Output: {{ array.current_output }} MW</li>
+      {% endfor %}
+    </ul>
   </div>
 
-  <hr>
 
-  <div class="panel-alerts">
-    <p><em>Alert: Minor fluctuations detected in Sector D substation. Auto-correct engaged.</em></p>
-  </div>
 </div>
+
+
+<script>
+function submitOutput() {
+  const val = document.getElementById('outputSlider').value;
+  fetch("/api/fusion_output", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_output: parseFloat(val) })
+  }).then(res => {
+    if (!res.ok) alert("Failed to set output.");
+    else location.reload();
+  });
+}
+
+function shutdownFusion() {
+  fetch("/api/fusion_shutdown", { method: "POST" })
+    .then(res => {
+      if (!res.ok) alert("Shutdown failed.");
+      else location.reload();
+    });
+}
+
+// Failure countdown timers (populated by Control setting in DB)
+let thermalFailTime = null;
+let magneticFailTime = null;
+
+function pollFailureTimers() {
+  fetch("/api/fusion_failures")
+    .then(res => res.json())
+    .then(data => {
+      thermalFailTime = data.thermal_seconds;
+      magneticFailTime = data.magnetic_seconds;
+
+      document.getElementById("thermalWarning").classList.toggle("hidden", !thermalFailTime);
+      document.getElementById("magneticWarning").classList.toggle("hidden", !magneticFailTime);
+    });
+}
+
+setInterval(pollFailureTimers, 1000);
+</script>
