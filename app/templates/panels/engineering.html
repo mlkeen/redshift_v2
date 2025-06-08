@@ -4,11 +4,11 @@
   <div class="card">
     <h3>Primary Fusion Drive</h3>
     <p>Status: <strong>{{ fusion_drive.status }}</strong></p>
-    <p>Output: <strong>{{ fusion_drive.current_output }} / {{ fusion_drive.max_output }} MW</strong></p>
+    <p>Output: <strong>{{ fusion_drive.current_output }} MW / {{ fusion_drive.max_output }} MW MW</strong></p>
 
     <div>
       <label for="outputSlider">Adjust Output</label>
-      <input type="range" id="outputSlider" min="0" max="{{ fusion_drive.max_output }}" value="{{ fusion_drive.current_output }}" step="1">
+      <input type="range" id="outputSlider" min="0" max="{{ fusion_drive.max_output }}" value="{{ fusion_drive.current_output }}" step="10">
       <button onclick="submitOutput()">Set Output</button>
     </div>
 
@@ -32,17 +32,19 @@
 
 
 <script>
-function submitOutput() {
-  const val = document.getElementById('outputSlider').value;
-  fetch("/api/fusion_output", {
+document.getElementById("outputSlider").addEventListener("input", function() {
+  const value = this.value;
+  document.getElementById("outputValue").textContent = value;
+
+  fetch("/api/set_fusion_output", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ new_output: parseFloat(val) })
+    body: JSON.stringify({ output: parseFloat(value) })
   }).then(res => {
-    if (!res.ok) alert("Failed to set output.");
-    else location.reload();
+    if (!res.ok) console.error("Failed to update fusion output");
   });
-}
+});
+</script>
 
 function shutdownFusion() {
   fetch("/api/fusion_shutdown", { method: "POST" })

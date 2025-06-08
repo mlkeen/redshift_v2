@@ -1,24 +1,45 @@
+
 {% extends "base.html" %}
+
 {% block content %}
-    <h2>Trigger Fusion Drive Failures</h2>
+<h1>Trigger Fusion Failures</h1>
 
-    <form method="POST">
-    <label>Failure Type:</label>
-    <select name="fail_type">
-        <option value="thermal">Thermal Regulation</option>
-        <option value="magnetic">Magnetic Containment</option>
+<form method="POST">
+  <div>
+    <label for="fail_type">Failure Type:</label>
+    <select name="fail_type" id="fail_type" required>
+      <option value="thermal">Thermal Containment</option>
+      <option value="magnetic">Magnetic Confinement</option>
     </select>
+  </div>
 
-    <label>Countdown (seconds):</label>
-    <input type="number" name="seconds" min="5" step="5" value="30">
+  <div>
+    <label for="seconds">Trigger in how many seconds?</label>
+    <input type="number" name="seconds" id="seconds" min="1" value="30" required>
+  </div>
 
-    <button type="submit">Trigger Failure</button>
-    </form>
+  <button type="submit">Trigger Failure</button>
+</form>
 
-    <h3>Current Active Failures</h3>
-    <ul>
-    <li>Thermal: {{ game_state.thermal_fail_time if game_state.thermal_fail_time else "None" }}</li>
-    <li>Magnetic: {{ game_state.magnetic_fail_time if game_state.magnetic_fail_time else "None" }}</li>
-    </ul>
+{% if game_state %}
+  <hr>
+  <h3>Current Failure Timers</h3>
+  <ul>
+    <li>Thermal: 
+      {% if game_state.thermal_fail_time %}
+        {{ game_state.thermal_fail_time.strftime("%Y-%m-%d %H:%M:%S") }} UTC
+      {% else %}
+        No failure pending
+      {% endif %}
+    </li>
+    <li>Magnetic: 
+      {% if game_state.magnetic_fail_time %}
+        {{ game_state.magnetic_fail_time.strftime("%Y-%m-%d %H:%M:%S") }} UTC
+      {% else %}
+        No failure pending
+      {% endif %}
+    </li>
+  </ul>
+{% endif %}
 
 {% endblock %}
